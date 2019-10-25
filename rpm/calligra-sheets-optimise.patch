@@ -1,0 +1,561 @@
+From 14605de6244f724433ba1d9eb084b1d50374f6f8 Mon Sep 17 00:00:00 2001
+From: David Llewellyn-Jones <david.llewellyn-jones@jolla.com>
+Date: Fri, 25 Oct 2019 20:11:24 +0300
+Subject: [PATCH] Add optimisations for importing readonly XLSX docs
+
+This adds a number of optimisations when importing readonly XLSX format
+speadsheets.
+
+1. Use the pre-calculated cell content values rather than performing a
+full recalculation using the cell formulae.
+
+2. Calculate a minimal containing rectangle around the cells with
+content and import only those cells + a fixed border (5 cells by
+default). Cells with only a background colour are ignored. This avoids
+having to import large areas of empty cells (which are a common
+occurrence in Excel files, since they're generate if the user selects an
+entire column/row and applies a style to it).
+
+The following additional compile-time cmake flags are also added.
+
+MSOOXML_MAX_SPREADSHEET_COLS=<integer>
+
+Controls the maximum number of columns to import. Defaults to 0x7FFF,
+the maximum supported by Calligra.
+
+MSOOXML_MAX_SPREADSHEET_ROWS=<integer>
+
+Controls the maximum number of rows to import. Defaults to 0xFFFFF, the
+maximum supported by Calligra.
+
+MSOOXML_SPREADSHEET_CONTENT_BORDER=<integer>
+
+The size of border to add around the minimal containing rectangle for
+read only documents. Defaults to 5.
+---
+ CMakeLists.txt                                |  11 ++
+ components/impl/DocumentImpl.cpp              |   5 +
+ components/impl/DocumentImpl.h                |   1 +
+ components/impl/SpreadsheetImpl.cpp           |   1 +
+ filters/libmsooxml/MsooXmlGlobal.cpp          |  22 ++-
+ filters/libmsooxml/MsooXmlGlobal.h            |   7 +-
+ filters/libmsooxml/MsooXmlImport.cpp          |   6 +
+ filters/libmsooxml/MsooXmlImport.h            |   2 +
+ filters/sheets/xlsx/XlsxXmlDocumentReader.cpp |   1 +
+ .../sheets/xlsx/XlsxXmlWorksheetReader.cpp    | 130 ++++++++++++------
+ filters/sheets/xlsx/XlsxXmlWorksheetReader.h  |   2 +
+ .../sheets/xlsx/XlsxXmlWorksheetReader_p.h    |  15 +-
+ libs/main/KoFilterChain.cpp                   |   5 +
+ libs/main/KoFilterChain.h                     |   3 +
+ 14 files changed, 162 insertions(+), 49 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index f9b56c89341..5e0d0e206b0 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -120,6 +120,17 @@ endif ()
+ option(GHNS "support Get Hot New Stuff" OFF)
+ option(PACKAGERS_BUILD "Build support of multiple CPU architectures in one binary. Should be used by packagers only." ON)
+ 
++# MSOOXML filter options
++if (MSOOXML_MAX_SPREADSHEET_COLS)
++    add_definitions( -DMSOOXML_MAX_SPREADSHEET_COLS=${MSOOXML_MAX_SPREADSHEET_COLS} )
++endif()
++if (MSOOXML_MAX_SPREADSHEET_ROWS)
++    add_definitions( -DMSOOXML_MAX_SPREADSHEET_ROWS=${MSOOXML_MAX_SPREADSHEET_ROWS} )
++endif()
++if (MSOOXML_SPREADSHEET_CONTENT_BORDER)
++    add_definitions( -DMSOOXML_SPREADSHEET_CONTENT_BORDER=${MSOOXML_SPREADSHEET_CONTENT_BORDER} )
++endif()
++
+ #######################
+ ########################
+ ## Productset setting ##
+diff --git a/components/impl/DocumentImpl.cpp b/components/impl/DocumentImpl.cpp
+index 09e64022731..984d7d0189f 100644
+--- a/components/impl/DocumentImpl.cpp
++++ b/components/impl/DocumentImpl.cpp
+@@ -127,6 +127,11 @@ void DocumentImpl::setReadOnly(bool readOnly)
+     d->readOnly = readOnly;
+ }
+ 
++bool DocumentImpl::readOnly() const
++{
++    return d->readOnly;
++}
++
+ void DocumentImpl::createAndSetCanvasController(KoCanvasBase* canvas)
+ {
+     auto controller = new ComponentsKoCanvasController{new KActionCollection{this}};
+diff --git a/components/impl/DocumentImpl.h b/components/impl/DocumentImpl.h
+index 729e27b46dd..a90a2ff8c34 100644
+--- a/components/impl/DocumentImpl.h
++++ b/components/impl/DocumentImpl.h
+@@ -65,6 +65,7 @@ public:
+     virtual QObject* part() const = 0;
+ 
+     void setReadOnly(bool readOnly);
++    bool readOnly() const;
+ 
+ Q_SIGNALS:
+     void documentSizeChanged();
+diff --git a/components/impl/SpreadsheetImpl.cpp b/components/impl/SpreadsheetImpl.cpp
+index 9a8d4232353..3209b2c9e5e 100644
+--- a/components/impl/SpreadsheetImpl.cpp
++++ b/components/impl/SpreadsheetImpl.cpp
+@@ -171,6 +171,7 @@ bool SpreadsheetImpl::load(const QUrl& url)
+     d->document->setAutoErrorHandlingEnabled(false);
+     connect(d->document, &KoDocument::loadError, this, &DocumentImpl::loadError);
+     d->part->setDocument(d->document);
++    d->document->setReadWrite(!readOnly());
+ 
+     bool retval = d->document->openUrl(url);
+ 
+diff --git a/filters/libmsooxml/MsooXmlGlobal.cpp b/filters/libmsooxml/MsooXmlGlobal.cpp
+index abbf7460860..ad1e0ae2bbc 100644
+--- a/filters/libmsooxml/MsooXmlGlobal.cpp
++++ b/filters/libmsooxml/MsooXmlGlobal.cpp
+@@ -25,12 +25,30 @@
+ 
+ #include "MsooXmlGlobal.h"
+ 
++#ifndef MSOOXML_MAX_SPREADSHEET_COLS
++#define MSOOXML_MAX_SPREADSHEET_COLS (0x7FFF)
++#endif
++
++#ifndef MSOOXML_MAX_SPREADSHEET_ROWS
++#define MSOOXML_MAX_SPREADSHEET_ROWS (0xFFFFF)
++#endif
++
++#ifndef MSOOXML_SPREADSHEET_CONTENT_BORDER
++#define MSOOXML_SPREADSHEET_CONTENT_BORDER (5)
++#endif
++
+ KOMSOOXML_EXPORT unsigned int MSOOXML::maximumSpreadsheetColumns()
+ {
+-    return 0x7FFF;
++    return MSOOXML_MAX_SPREADSHEET_COLS;
+ }
+ 
+ KOMSOOXML_EXPORT unsigned int MSOOXML::maximumSpreadsheetRows()
+ {
+-    return 0xFFFFF;
++    return MSOOXML_MAX_SPREADSHEET_ROWS;
+ }
++
++KOMSOOXML_EXPORT int MSOOXML::spreadsheetContentBorder()
++{
++    return MSOOXML_SPREADSHEET_CONTENT_BORDER;
++}
++
+diff --git a/filters/libmsooxml/MsooXmlGlobal.h b/filters/libmsooxml/MsooXmlGlobal.h
+index 1e32ede70ef..8acf2a81cd4 100644
+--- a/filters/libmsooxml/MsooXmlGlobal.h
++++ b/filters/libmsooxml/MsooXmlGlobal.h
+@@ -32,13 +32,16 @@
+ namespace MSOOXML
+ {
+ 
+-//! @return maximum number of spreadsheet columns per worksheet. Currently set to 32767, which is Calligra Sheets maximum.
++//! @return maximum number of spreadsheet columns per worksheet. By default  this is set to 32767, which is Calligra Sheets maximum.
+ //! See http://en.wikipedia.org/wiki/OpenOffice.org_Calc#Specifications
+ KOMSOOXML_EXPORT unsigned int maximumSpreadsheetColumns();
+ 
+-//! @return maximum number of spreadsheet rows per worksheet. Currently set to 32767, which is Calligra Sheets maximum.
++//! @return maximum number of spreadsheet rows per worksheet. By default this is set to 32767, which is Calligra Sheets maximum.
+ KOMSOOXML_EXPORT unsigned int maximumSpreadsheetRows();
+ 
++//! @return returns the size of the border in cells to place around the content. This applies only if reduceSpreadsheetDimensionsToContent() is true.
++KOMSOOXML_EXPORT int spreadsheetContentBorder();
++
+ } // MSOOXML namespace
+ 
+ #endif /* MSOOXML_GLOBAL_H */
+diff --git a/filters/libmsooxml/MsooXmlImport.cpp b/filters/libmsooxml/MsooXmlImport.cpp
+index 8876988220f..3c9f87061f8 100644
+--- a/filters/libmsooxml/MsooXmlImport.cpp
++++ b/filters/libmsooxml/MsooXmlImport.cpp
+@@ -711,6 +711,11 @@ KoFilter::ConversionStatus MsooXmlImport::loadAndParseDocumentFromFileIfExists(
+     return status;
+ }
+ 
++bool MsooXmlImport::isReadOnly() const
++{
++    return m_chain->isReadOnlyFilterManagerDocument();
++}
++
+ KoFilter::ConversionStatus MsooXmlImport::loadAndParseDocument(
+     MsooXmlReader *reader, const QString& path,
+     MsooXmlReaderContext* context)
+@@ -719,6 +724,7 @@ KoFilter::ConversionStatus MsooXmlImport::loadAndParseDocument(
+         return KoFilter::UsageError;
+     }
+     QString errorMessage;
++
+     KoFilter::ConversionStatus status = Utils::loadAndParseDocument(
+                                             reader, m_zip, reader, errorMessage, path, context);
+     if (status != KoFilter::OK)
+diff --git a/filters/libmsooxml/MsooXmlImport.h b/filters/libmsooxml/MsooXmlImport.h
+index 26805a268e7..9b334d9fb0b 100644
+--- a/filters/libmsooxml/MsooXmlImport.h
++++ b/filters/libmsooxml/MsooXmlImport.h
+@@ -104,6 +104,8 @@ public:
+     /*! report progress of the filter */
+     void reportProgress(unsigned progress);
+ 
++    bool isReadOnly() const;
++
+ protected:
+     KoFilter::ConversionStatus createDocument(KoStore *outputStore,
+                                                       KoOdfWriters *writers) override;
+diff --git a/filters/sheets/xlsx/XlsxXmlDocumentReader.cpp b/filters/sheets/xlsx/XlsxXmlDocumentReader.cpp
+index 1766b5773bc..10d15751e69 100644
+--- a/filters/sheets/xlsx/XlsxXmlDocumentReader.cpp
++++ b/filters/sheets/xlsx/XlsxXmlDocumentReader.cpp
+@@ -338,6 +338,7 @@ KoFilter::ConversionStatus XlsxXmlDocumentReader::read_sheet()
+                                           *m_context->comments,
+                                           *m_context->styles,
+                                           *m_context->relationships, m_context->import,
++                                          m_context->import->isReadOnly(),
+                                           vmlreader.content(),
+                                           vmlreader.frames(),
+                                           m_context->autoFilters);
+diff --git a/filters/sheets/xlsx/XlsxXmlWorksheetReader.cpp b/filters/sheets/xlsx/XlsxXmlWorksheetReader.cpp
+index e67151c5fa2..f69e5880325 100644
+--- a/filters/sheets/xlsx/XlsxXmlWorksheetReader.cpp
++++ b/filters/sheets/xlsx/XlsxXmlWorksheetReader.cpp
+@@ -42,6 +42,7 @@
+ #include <MsooXmlUtils.h>
+ #include <MsooXmlUnits.h>
+ #include <MsooXmlGlobal.h>
++#include <MsooXmlDebug.h>
+ 
+ #include <KoUnit.h>
+ #include <KoXmlWriter.h>
+@@ -102,6 +103,7 @@ XlsxXmlWorksheetReaderContext::XlsxXmlWorksheetReaderContext(
+     const XlsxStyles& _styles,
+     MSOOXML::MsooXmlRelationships& _relationships,
+     XlsxImport* _import,
++    bool _readOnly,
+     QMap<QString, QString> _oleReplacements,
+     QMap<QString, QString> _oleBeginFrames,
+     QVector<XlsxXmlDocumentReaderContext::AutoFilter>& autoFilters)
+@@ -118,6 +120,7 @@ XlsxXmlWorksheetReaderContext::XlsxXmlWorksheetReaderContext(
+         , import(_import)
+         , path(_path)
+         , file(_file)
++        , readOnly(_readOnly)
+         , oleReplacements(_oleReplacements)
+         , oleFrameBegins(_oleBeginFrames)
+         , autoFilters(autoFilters)
+@@ -605,9 +608,23 @@ KoFilter::ConversionStatus XlsxXmlWorksheetReader::read_sheetHelper(const QStrin
+         body->endElement(); // table:shapes
+     }
+ 
++    // If the sheet should be reduced to dimensions just containing the actual
++    // content, then calculate appropriate bounds. Otherwise set the bounds
++    // to the maximum column and row of the original spreadsheet.
++    const int exportMaxRow = m_context->readOnly
++            ? min(m_context->sheet->contentMaxRow()
++                  + MSOOXML::spreadsheetContentBorder(),
++                  m_context->sheet->maxRow())
++            : m_context->sheet->maxRow();
++    const int exportMaxColumn = m_context->readOnly
++            ? min(m_context->sheet->contentMaxColumn()
++                  + MSOOXML::spreadsheetContentBorder(),
++                  m_context->sheet->maxColumn())
++            : m_context->sheet->maxColumn();
++
+     // now we have everything to start writing the actual cells
+     int c = 0;
+-    while (c <= m_context->sheet->maxColumn()) {
++    while (c <= exportMaxColumn) {
+         body->startElement("table:table-column");
+         int repeatedColumns = 1;
+         bool currentColumnHidden = false;
+@@ -627,7 +644,7 @@ KoFilter::ConversionStatus XlsxXmlWorksheetReader::read_sheetHelper(const QStrin
+             currentColumnHidden = true;
+         }
+         ++c;
+-        while (c <= m_context->sheet->maxColumn()) {
++        while (c <= exportMaxColumn) {
+             column = m_context->sheet->column(c, false);
+             if (column && column->hidden ) {
+                 if (currentColumnHidden) {
+@@ -653,9 +670,8 @@ KoFilter::ConversionStatus XlsxXmlWorksheetReader::read_sheetHelper(const QStrin
+         body->endElement();  // table:table-column
+     }
+ 
+-    const int rowCount = m_context->sheet->maxRow();
+-    for(int r = 0; r <= rowCount; ++r) {
+-        const int columnCount = m_context->sheet->maxCellsInRow(r);
++    for(int r = 0; r <= exportMaxRow; ++r) {
++        const int columnCount = min(m_context->sheet->maxCellsInRow(r), exportMaxColumn);
+         Row* row = m_context->sheet->row(r, false);
+         body->startElement("table:table-row");
+         if (row) {
+@@ -1066,6 +1082,7 @@ KoFilter::ConversionStatus XlsxXmlWorksheetReader::read_cols()
+             ELSE_WRONG_FORMAT
+         }
+     }
++
+     READ_EPILOGUE_WITHOUT_RETURN
+ 
+     // append remaining empty columns
+@@ -1140,6 +1157,18 @@ KoFilter::ConversionStatus XlsxXmlWorksheetReader::read_col()
+     if (minCol > maxCol)
+         qSwap(minCol, maxCol);
+ 
++    if (minCol >= MSOOXML::maximumSpreadsheetColumns()) {
++        showWarningAboutWorksheetSize();
++        readNext();
++        // This will return
++        READ_EPILOGUE
++    }
++
++    if (maxCol > MSOOXML::maximumSpreadsheetColumns()) {
++        showWarningAboutWorksheetSize();
++        maxCol = MSOOXML::maximumSpreadsheetColumns();
++    }
++
+     if (m_columnCount < minCol) {
+         appendTableColumns(minCol - m_columnCount);
+         m_columnCount = minCol;
+@@ -1174,10 +1203,6 @@ KoFilter::ConversionStatus XlsxXmlWorksheetReader::read_col()
+ 
+     m_columnCount += (maxCol - minCol);
+ 
+-    if (m_columnCount > (int)MSOOXML::maximumSpreadsheetColumns()) {
+-        showWarningAboutWorksheetSize();
+-    }
+-
+     readNext();
+     READ_EPILOGUE
+ }
+@@ -1199,13 +1224,20 @@ KoFilter::ConversionStatus XlsxXmlWorksheetReader::read_sheetData()
+ {
+     READ_PROLOGUE
+     m_currentRow = 0;
++
+     while (!atEnd()) {
+         readNext();
+         qCDebug(lcXlsxImport) << *this;
+         BREAK_IF_END_OF(CURRENT_EL)
+         if (isStartElement()) {
+-            TRY_READ_IF(row)
+-            ELSE_WRONG_FORMAT
++            if (m_currentRow < MSOOXML::maximumSpreadsheetRows()) {
++                TRY_READ_IF(row)
++                ELSE_WRONG_FORMAT
++            }
++            else {
++                showWarningAboutWorksheetSize();
++                skipCurrentElement();
++            }
+         }
+     }
+     READ_EPILOGUE
+@@ -1270,9 +1302,6 @@ KoFilter::ConversionStatus XlsxXmlWorksheetReader::read_row()
+         if (!ok || m_currentRow < 0)
+             return KoFilter::WrongFormat;
+     }
+-    if (m_currentRow > (int)MSOOXML::maximumSpreadsheetRows()) {
+-        showWarningAboutWorksheetSize();
+-    }
+ 
+     m_currentColumn = 0;
+     Row* row = m_context->sheet->row(m_currentRow, true);
+@@ -1355,6 +1384,15 @@ KoFilter::ConversionStatus XlsxXmlWorksheetReader::read_c()
+             return KoFilter::WrongFormat;
+     }
+ 
++    if ((m_currentColumn >= MSOOXML::maximumSpreadsheetColumns())
++            || (m_currentRow >= MSOOXML::maximumSpreadsheetRows())) {
++        skipCurrentElement();
++        ++m_currentColumn; // This cell is done now. Select the next cell.
++
++        // This will return
++        READ_EPILOGUE
++    }
++
+     TRY_READ_ATTR_WITHOUT_NS(s)
+     TRY_READ_ATTR_WITHOUT_NS(t)
+ 
+@@ -1388,6 +1426,7 @@ KoFilter::ConversionStatus XlsxXmlWorksheetReader::read_c()
+ //    const bool addTextPElement = true;//m_value.isEmpty() || t != QLatin1String("s");
+ 
+     if (!m_value.isEmpty()) {
++        m_context->sheet->updateContentBounds(m_currentColumn, m_currentRow);
+         /* depending on type: 18.18.11 ST_CellType (Cell Type), p. 2679:
+             b (Boolean)  Cell containing a boolean.
+             d (Date)     Cell contains a date in the ISO 8601 format.
+@@ -1570,43 +1609,46 @@ KoFilter::ConversionStatus XlsxXmlWorksheetReader::read_f()
+         STRING_TO_INT(si, sharedGroupIndex, "f@si")
+     }
+ 
+-    while (!atEnd() && !hasError()) {
+-        readNext();
+-        BREAK_IF_END_OF(CURRENT_EL)
+-        if (isCharacters()) {
+-            delete cell->formula;
+-            cell->formula = new FormulaImpl(Calligra::Sheets::MSOOXML::convertFormula(text().toString()));
++    if ((sharedGroupIndex >= 0) || (!m_context->readOnly)) {
++        while (!atEnd() && !hasError()) {
++            readNext();
++            BREAK_IF_END_OF(CURRENT_EL)
++            if (isCharacters()) {
++                delete cell->formula;
++                cell->formula = new FormulaImpl(Calligra::Sheets::MSOOXML::convertFormula(text().toString()));
++            }
+         }
+-    }
++    } else {
++        skipCurrentElement();
++    }
++
++    if (sharedGroupIndex >= 0) {
++        /* Shared Group Index, p. 1815
++        Optional attribute to optimize load performance by sharing formulas.
++        When a formula is a shared formula (t value is shared) then this value indicates the
++        group to which this particular cell's formula belongs. The first formula in a group of
++        shared formulas is saved in the f element. This is considered the 'master' formula cell.
++        Subsequent cells sharing this formula need not have the formula written in their f
++        element. Instead, the attribute si value for a particular cell is used to figure what the
++        formula expression should be based on the cell's relative location to the master formula
++        cell.
++        */
+ 
+-    if (!t.isEmpty()) {
+-        if (t == QLatin1String("shared")) {
+-            if (sharedGroupIndex >= 0) {
+-                /* Shared Group Index, p. 1815
+-                Optional attribute to optimize load performance by sharing formulas.
+-                When a formula is a shared formula (t value is shared) then this value indicates the
+-                group to which this particular cell's formula belongs. The first formula in a group of
+-                shared formulas is saved in the f element. This is considered the 'master' formula cell.
+-                Subsequent cells sharing this formula need not have the formula written in their f
+-                element. Instead, the attribute si value for a particular cell is used to figure what the
+-                formula expression should be based on the cell's relative location to the master formula
+-                cell.
+-                */
+-                if (d->sharedFormulas.contains(sharedGroupIndex)) {
+-                    if (!cell->formula /* || cell->formula->isEmpty() */) { // don't do anything if the cell already defines a formula
+-                        QHash<int, Cell*>::iterator it = d->sharedFormulas.find(sharedGroupIndex);
+-                        if (it != d->sharedFormulas.end()) {
+-                            delete cell->formula;
+-                            cell->formula = new SharedFormula(it.value());
+-                        }
+-                    }
+-                } else if (cell->formula /* && !cell->formula->isEmpty()*/) { // is this cell the master cell?
+-                    d->sharedFormulas[sharedGroupIndex] = cell;
++        if (d->sharedFormulas.contains(sharedGroupIndex)) {
++            if (!cell->formula /* || cell->formula->isEmpty() */) { // don't do anything if the cell already defines a formula
++                QHash<int, Cell*>::iterator it = d->sharedFormulas.find(sharedGroupIndex);
++                if (it != d->sharedFormulas.end()) {
++                    delete cell->formula;
++                    cell->formula = new SharedFormula(it.value());
+                 }
+             }
++        } else if (cell->formula /* && !cell->formula->isEmpty()*/) { // is this cell the master cell?
++            d->sharedFormulas[sharedGroupIndex] = cell;
+         }
+     }
+ 
++    m_context->sheet->updateContentBounds(m_currentColumn, m_currentRow);
++
+     /*
+     if (!ref.isEmpty()) {
+         const int pos = ref.indexOf(':');
+diff --git a/filters/sheets/xlsx/XlsxXmlWorksheetReader.h b/filters/sheets/xlsx/XlsxXmlWorksheetReader.h
+index 988c359241c..e2650ecb00c 100644
+--- a/filters/sheets/xlsx/XlsxXmlWorksheetReader.h
++++ b/filters/sheets/xlsx/XlsxXmlWorksheetReader.h
+@@ -154,6 +154,7 @@ public:
+         const XlsxStyles& _styles,
+         MSOOXML::MsooXmlRelationships& _relationships,
+         XlsxImport* _import,
++        bool _readOnly,
+         QMap<QString, QString> _oleReplacements,
+         QMap<QString, QString> _oleBeginFrames,
+         QVector<XlsxXmlDocumentReaderContext::AutoFilter>& autoFilters);
+@@ -181,6 +182,7 @@ public:
+     QVector<XlsxXmlDocumentReaderContext::AutoFilter>& autoFilters;
+ 
+     bool firstRoundOfReading;
++    bool readOnly;
+ 
+     QList<QMap<QString, QString> > conditionalStyleForPosition(const QString& positionLetter, int positionNumber);
+ 
+diff --git a/filters/sheets/xlsx/XlsxXmlWorksheetReader_p.h b/filters/sheets/xlsx/XlsxXmlWorksheetReader_p.h
+index 91fbc037ace..ed6c9ca2fd1 100644
+--- a/filters/sheets/xlsx/XlsxXmlWorksheetReader_p.h
++++ b/filters/sheets/xlsx/XlsxXmlWorksheetReader_p.h
+@@ -177,7 +177,7 @@ public:
+     QString m_name;
+     double m_defaultRowHeight, m_defaultColWidth, m_baseColWidth;
+ 
+-    explicit Sheet(const QString &name) : m_name(name), m_defaultRowHeight(-1.0), m_defaultColWidth(-1.0), m_baseColWidth(-1.0), m_maxRow(0), m_maxColumn(0), m_visible(true) {}
++    explicit Sheet(const QString &name) : m_name(name), m_defaultRowHeight(-1.0), m_defaultColWidth(-1.0), m_baseColWidth(-1.0), m_maxRow(0), m_maxColumn(0), m_contentMaxRow(0), m_contentMaxColumn(0), m_visible(true) {}
+     ~Sheet() { qDeleteAll(m_rows); qDeleteAll(m_columns); /*qDeleteAll(m_cells);*/ }
+ 
+     Row* row(int rowIndex, bool autoCreate)
+@@ -219,9 +219,20 @@ public:
+         return c;
+     }
+ 
++    void updateContentBounds(int column, int row) {
++        if (column > m_contentMaxColumn) {
++            m_contentMaxColumn = column;
++        }
++        if (row > m_contentMaxRow) {
++            m_contentMaxRow = row;
++        }
++    }
++
+     int maxRow() const { return m_maxRow; }
+     int maxColumn() const { return m_maxColumn; }
+     int maxCellsInRow(int rowIndex) const { return m_maxCellsInRow[rowIndex]; }
++    int contentMaxRow() const { return m_contentMaxRow; }
++    int contentMaxColumn() const { return m_contentMaxColumn; }
+ 
+     bool visible() const { return m_visible; }
+     void setVisible(bool visible) { m_visible = visible; }
+@@ -237,6 +248,8 @@ private:
+     QString m_pictureBackgroundPath;
+     int m_maxRow;
+     int m_maxColumn;
++    int m_contentMaxRow;
++    int m_contentMaxColumn;
+     bool m_visible : 1;
+ };
+ 
+diff --git a/libs/main/KoFilterChain.cpp b/libs/main/KoFilterChain.cpp
+index 4b49cfbf4da..afadf1fe19b 100644
+--- a/libs/main/KoFilterChain.cpp
++++ b/libs/main/KoFilterChain.cpp
+@@ -541,3 +541,8 @@ int KoFilterChain::weight() const
+ {
+     return m_chainLinks.count();
+ }
++
++bool KoFilterChain::isReadOnlyFilterManagerDocument() const
++{
++    return filterManagerKoDocument() ? !filterManagerKoDocument()->isReadWrite() : false;
++}
+diff --git a/libs/main/KoFilterChain.h b/libs/main/KoFilterChain.h
+index 8ad2b0181ab..cac0e210a3d 100644
+--- a/libs/main/KoFilterChain.h
++++ b/libs/main/KoFilterChain.h
+@@ -130,6 +130,9 @@ public:
+     // debugging
+     void dump();
+ 
++    // Original input document setting
++    bool isReadOnlyFilterManagerDocument() const;
++
+ private:
+     // ### API for Calligra::Graph:
+     // Construct a filter chain belonging to some KoFilterManager.
+-- 
+2.26.2
+
