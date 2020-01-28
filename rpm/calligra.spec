@@ -166,7 +166,7 @@ BuildRequires:  pkgconfig(Qt5Test)
 BuildRequires:  pkgconfig(Qt5Widgets)
 BuildRequires:  pkgconfig(Qt5PrintSupport)
 BuildRequires:  pkgconfig(KF5Archive)
-BuildRequires:  python
+BuildRequires:  python3-base
 BuildRequires:  pkgconfig(zlib)
 BuildRequires:  extra-cmake-modules >= 5.34.0
 %description kf5
