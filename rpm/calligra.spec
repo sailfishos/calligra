@@ -3,7 +3,6 @@ Version:        3.1.0+git18
 Release:        1
 Summary:        Calligra suite
 License:        GPLv2
-Group:          System/Libraries
 Url:            http://www.kde.org/
 Source0:        %{name}-%{version}.tar.gz
 BuildRequires:  cmake
@@ -48,7 +47,6 @@ Patch22: calligra-sheets-csvimport.patch
 
 %package components
 Summary: Qt Quick components for showing documents using Calligra
-Group: Development/Libraries
 Requires: %{name}-libs
 Requires: %{name}-data
 Requires: %{name}-sheets-core
@@ -78,7 +76,6 @@ Obsoletes: %{name}-stage-filters < 3.1.0
 
 %package libs
 Summary: Shared Calligra libraries
-Group: Development/Libraries
 Requires: %{name}-kf5
 %description libs
 %{summary}.
@@ -98,7 +95,6 @@ Summary: Calligra plugins
 
 %package words-core
 Summary: Calligra Words libraries
-Group: Development/Libraries
 Requires: %{name}-plugins %{name}-data
 %description words-core
 %{summary}.
@@ -114,7 +110,6 @@ Summary: Calligra Words templates
 
 %package sheets-core
 Summary: Calligra Sheets libraries
-Group: Development/Libraries
 Requires: %{name}-plugins %{name}-data
 Obsoletes: %{name}-sheets-core-plugins < 3.1.0
 Obsoletes: %{name}-sheets-plugins < 3.1.0
@@ -132,7 +127,6 @@ Summary: Calligra Sheets templates
 
 %package stage-core
 Summary: Calligra Stage libraries
-Group: Development/Libraries
 Requires: %{name}-plugins %{name}-data
 Obsoletes: %{name}-stage-plugins < 3.1.0
 %description stage-core
@@ -149,7 +143,6 @@ Summary: Calligra Stage templates
 
 %package kf5
 Summary:  Bundled KDE framework libraries
-Group:    System/Libraries
 BuildRequires:  cmake
 BuildRequires:  gettext
 BuildRequires:  pkgconfig(Qt5Core)
@@ -198,7 +191,7 @@ BuildRequires:  extra-cmake-modules >= 5.34.0
 %patch21 -d upstream -p1
 %patch22 -d upstream -p1
 
-%define build_kf5() cd %1 ; if [ ! -d build ] ; then mkdir build ; fi ; cd build ; if [ ! -e Makefile ] ; then CMAKE_PREFIX_PATH=%{_buildrootdir}/kf5/usr cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_RPATH=/usr/lib/calligra-kf5 -DBUILD_TESTING=OFF %{?2} .. ; fi ; make %{?_smp_mflags} install DESTDIR=%{_buildrootdir}/kf5 ; cd ../.. ;
+%define build_kf5() cd %1 ; if [ ! -d build ] ; then mkdir build ; fi ; cd build ; if [ ! -e Makefile ] ; then CMAKE_PREFIX_PATH=%{_buildrootdir}/kf5/usr cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_RPATH=%{_libdir}/calligra-kf5 -DBUILD_TESTING=OFF %{?2} .. ; fi ; make %{?_smp_mflags} install DESTDIR=%{_buildrootdir}/kf5 ; cd ../.. ;
 %build
 %build_kf5 kcodecs
 %build_kf5 kconfig
@@ -220,16 +213,16 @@ CMAKE_PREFIX_PATH=%{_buildrootdir}/kf5/usr cmake -DCMAKE_INSTALL_PREFIX=/usr -DP
 make %{?_smp_mflags}
 
 %install
-install -d %{buildroot}/usr/lib/calligra-kf5/
-cp -a %{_buildrootdir}/kf5/usr/lib/lib{KF5*,KChart}.so.* %{buildroot}/usr/lib/calligra-kf5/
+install -d %{buildroot}%{_libdir}/calligra-kf5/
+cp -a %{_buildrootdir}/kf5%{_libdir}/lib{KF5*,KChart}.so.* %{buildroot}%{_libdir}/calligra-kf5/
 cd upstream/build
 make install DESTDIR=%{buildroot}
-install -d %{buildroot}/usr/lib/qt5
-if [ -d %{buildroot}/usr/lib/qml ] ; then mv %{buildroot}/usr/lib/qml %{buildroot}/usr/lib/qt5/ ; fi
-install -d %{buildroot}/usr/lib/qt5/plugins
-if [ -d %{buildroot}/usr/lib/plugins/calligra ] ; then mv %{buildroot}/usr/lib/plugins/calligra %{buildroot}/usr/lib/qt5/plugins/ ; fi
-if [ -d %{buildroot}/usr/lib/plugins/calligrasheets ] ; then mv %{buildroot}/usr/lib/plugins/calligrasheets %{buildroot}/usr/lib/qt5/plugins/ ; fi
-if [ -d %{buildroot}/usr/lib/plugins/calligrastage ] ; then mv %{buildroot}/usr/lib/plugins/calligrastage %{buildroot}/usr/lib/qt5/plugins/ ; fi
+install -d %{buildroot}%{_libdir}/qt5
+if [ -d %{buildroot}%{_libdir}/qml ] ; then mv %{buildroot}%{_libdir}/qml %{buildroot}%{_libdir}/qt5/ ; fi
+install -d %{buildroot}%{_libdir}/qt5/plugins
+if [ -d %{buildroot}%{_libdir}/plugins/calligra ] ; then mv %{buildroot}%{_libdir}/plugins/calligra %{buildroot}%{_libdir}/qt5/plugins/ ; fi
+if [ -d %{buildroot}%{_libdir}/plugins/calligrasheets ] ; then mv %{buildroot}%{_libdir}/plugins/calligrasheets %{buildroot}%{_libdir}/qt5/plugins/ ; fi
+if [ -d %{buildroot}%{_libdir}/plugins/calligrastage ] ; then mv %{buildroot}%{_libdir}/plugins/calligrastage %{buildroot}%{_libdir}/qt5/plugins/ ; fi
 
 %post -p /sbin/ldconfig
 %postun -p /sbin/ldconfig
