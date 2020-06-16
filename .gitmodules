@@ -1,48 +1,48 @@
 [submodule "upstream"]
 	path = upstream
-	url = git://anongit.kde.org/calligra
+	url = https://github.com/sailfishos-mirror/calligra.git
 [submodule "ki18n"]
 	path = ki18n
-	url = git://anongit.kde.org/ki18n.git
+	url = https://github.com/sailfishos-mirror/ki18n.git
 [submodule "kconfigwidgets"]
 	path = kconfigwidgets
-	url = git://anongit.kde.org/kconfigwidgets.git
+	url = https://github.com/sailfishos-mirror/kconfigwidgets.git
 [submodule "kcoreaddons"]
 	path = kcoreaddons
-	url = git://anongit.kde.org/kcoreaddons.git
+	url = https://github.com/sailfishos-mirror/kcoreaddons.git
 [submodule "kcodecs"]
 	path = kcodecs
-	url = git://anongit.kde.org/kcodecs.git
+	url = https://github.com/sailfishos-mirror/kcodecs.git
 [submodule "kconfig"]
 	path = kconfig
-	url = git://anongit.kde.org/kconfig.git
+	url = https://github.com/sailfishos-mirror/kconfig.git
 [submodule "kwidgetsaddons"]
 	path = kwidgetsaddons
-	url = git://anongit.kde.org/kwidgetsaddons.git
+	url = https://github.com/sailfishos-mirror/kwidgetsaddons.git
 [submodule "kguiaddons"]
 	path = kguiaddons
-	url = git://anongit.kde.org/kguiaddons.git
+	url = https://github.com/sailfishos-mirror/kguiaddons.git
 [submodule "kxmlgui"]
 	path = kxmlgui
-	url = git://anongit.kde.org/kxmlgui.git
+	url = https://github.com/sailfishos-mirror/kxmlgui.git
 [submodule "kcompletion"]
 	path = kcompletion
-	url = git://anongit.kde.org/kcompletion.git
+	url = https://github.com/sailfishos-mirror/kcompletion.git
 [submodule "kiconthemes"]
 	path = kiconthemes
-	url = git://anongit.kde.org/kiconthemes.git
+	url = https://github.com/sailfishos-mirror/kiconthemes.git
 [submodule "kservice"]
 	path = kservice
-	url = git://anongit.kde.org/kservice.git
+	url = https://github.com/sailfishos-mirror/kservice.git
 [submodule "kdbusaddons"]
 	path = kdbusaddons
-	url = git://anongit.kde.org/kdbusaddons.git
+	url = https://github.com/sailfishos-mirror/kdbusaddons.git
 [submodule "kio"]
 	path = kio
-	url = git://anongit.kde.org/kio.git
+	url = https://github.com/sailfishos-mirror/kio.git
 [submodule "kitemviews"]
 	path = kitemviews
-	url = git://anongit.kde.org/kitemviews.git
+	url = https://github.com/sailfishos-mirror/kitemviews.git
 [submodule "kdiagram"]
 	path = kdiagram
-	url = git://anongit.kde.org/kdiagram.git
+	url = https://github.com/sailfishos-mirror/kdiagram.git
