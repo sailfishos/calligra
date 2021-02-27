@@ -1,44 +1,48 @@
-From 0caea77821ff484ed0bd017242180d50a118b289 Mon Sep 17 00:00:00 2001
+From 881264d06ffb7cd9c56357f37f341af5a1149c32 Mon Sep 17 00:00:00 2001
 From: Damien Caliste <dcaliste@free.fr>
 Date: Tue, 11 Dec 2018 13:13:49 +0100
-Subject: [PATCH 04/14] Disable various dependencies in build system.
+Subject: [PATCH] Disable various dependencies in build system.
 
 ---
- CMakeLists.txt                      | 29 +++++++++++++++--------------
+ CMakeLists.txt                      | 33 +++++++++++++++--------------
  karbon/CMakeLists.txt               |  3 +++
  libs/main/CMakeLists.txt            |  4 ++--
  libs/store/CMakeLists.txt           |  4 ++--
- libs/text/CMakeLists.txt            |  8 ++++----
+ libs/text/CMakeLists.txt            |  8 +++----
  libs/widgets/CMakeLists.txt         |  4 ++--
  plugins/pictureshape/CMakeLists.txt |  6 ++++--
  plugins/textshape/CMakeLists.txt    |  4 ++--
- sheets/CMakeLists.txt               | 15 ++++++++-------
+ sheets/CMakeLists.txt               | 15 +++++++------
  sheets/plugins/CMakeLists.txt       |  2 +-
- sheets/shape/CMakeLists.txt         |  2 +-
  stage/part/CMakeLists.txt           |  4 ++--
- 12 files changed, 46 insertions(+), 39 deletions(-)
+ 11 files changed, 47 insertions(+), 40 deletions(-)
 
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 273a0b45f3d..8c69e8e37fc 100644
+index 343525cb02a..944a2f798b1 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -202,6 +202,7 @@ include(MacroDesktopToJson)
+@@ -201,6 +201,7 @@ include(MacroDesktopToJson)
  
- set(REQUIRED_KF5_VERSION "5.7.0")
+ set(REQUIRED_KF5_VERSION "5.30.0")
  
 +set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib/calligra-kf5")
  find_package(KF5 ${REQUIRED_KF5_VERSION} REQUIRED
      COMPONENTS
      Archive
-@@ -211,24 +212,24 @@ find_package(KF5 ${REQUIRED_KF5_VERSION} REQUIRED
+@@ -209,27 +210,27 @@ find_package(KF5 ${REQUIRED_KF5_VERSION} REQUIRED
+     Config
      ConfigWidgets
      CoreAddons
+-    Crash
++#    Crash
      DBusAddons
 -    DocTools
 +#    DocTools
      GuiAddons
      I18n
      IconThemes
+-    Init
++#    Init
      ItemViews
 -    JobWidgets
 -    KCMUtils
@@ -67,7 +71,7 @@ index 273a0b45f3d..8c69e8e37fc 100644
      XmlGui
      )
  
-@@ -270,8 +271,8 @@ find_package(Qt5 ${REQUIRED_QT_VERSION} QUIET
+@@ -261,8 +262,8 @@ find_package(Qt5 ${REQUIRED_QT_VERSION} QUIET
      DBus
      OpenGL
      Quick
@@ -77,9 +81,9 @@ index 273a0b45f3d..8c69e8e37fc 100644
 +#    Sql
  )
  
- # Qt5Declarative was removed in Qt 5.6.0 so search for it in a separate call
+ set_package_properties(Qt5DBus PROPERTIES
 diff --git a/karbon/CMakeLists.txt b/karbon/CMakeLists.txt
-index 10b9498c658..2092058bbbe 100644
+index 3fc2d09d359..bfbe3eaff52 100644
 --- a/karbon/CMakeLists.txt
 +++ b/karbon/CMakeLists.txt
 @@ -61,6 +61,9 @@ ecm_install_icons(ICONS
@@ -153,10 +157,10 @@ index 16d7e066fa2..4d7c38dcfa7 100644
  if( SHOULD_BUILD_FEATURE_RDF )
      target_link_libraries(kotext PRIVATE ${SOPRANO_LIBRARIES})
 diff --git a/libs/widgets/CMakeLists.txt b/libs/widgets/CMakeLists.txt
-index dad5d91e1e3..cac0998057f 100644
+index 1cda349fb5f..2382f388f60 100644
 --- a/libs/widgets/CMakeLists.txt
 +++ b/libs/widgets/CMakeLists.txt
-@@ -90,7 +90,7 @@ set(kowidgets_LIB_SRCS
+@@ -87,7 +87,7 @@ set(kowidgets_LIB_SRCS
      KoModeBoxFactory.cpp
  
      KoDocumentInfoDlg.cpp
@@ -165,7 +169,7 @@ index dad5d91e1e3..cac0998057f 100644
  
      KoGlobal.cpp
      KoTableView.cpp
-@@ -118,7 +118,7 @@ target_link_libraries(kowidgets
+@@ -115,7 +115,7 @@ target_link_libraries(kowidgets
          kotext
          pigmentcms
          kowidgetutils
@@ -213,7 +217,7 @@ index af165b4a621..648f1fd3fa0 100644
    KF5::WidgetsAddons
    KF5::Completion
 diff --git a/sheets/CMakeLists.txt b/sheets/CMakeLists.txt
-index 87a8e6f6f64..0506edd7435 100644
+index 60da4f63edd..8900775c833 100644
 --- a/sheets/CMakeLists.txt
 +++ b/sheets/CMakeLists.txt
 @@ -72,7 +72,7 @@ set (commands_DIR_SRCS
@@ -270,21 +274,8 @@ index b18b166b3ac..af12e68b4f0 100644
  add_subdirectory( solver )
  if (SHOULD_BUILD_FEATURE_SCRIPTING)
    add_subdirectory( scripting )
-diff --git a/sheets/shape/CMakeLists.txt b/sheets/shape/CMakeLists.txt
-index 5a9b91a2e7c..542c840c259 100644
---- a/sheets/shape/CMakeLists.txt
-+++ b/sheets/shape/CMakeLists.txt
-@@ -26,7 +26,7 @@ add_library(calligra_shape_spreadsheet MODULE TableShapeFactory.cpp)
- calligra_shape_desktop_to_json(calligra_shape_spreadsheet calligra_shape_spreadsheet.desktop)
- 
- target_link_libraries(calligra_shape_spreadsheet-deferred PUBLIC calligrasheetscommon PRIVATE KF5::Completion)
--target_link_libraries(calligra_shape_spreadsheet flake KF5::KDELibs4Support)
-+target_link_libraries(calligra_shape_spreadsheet flake)
- 
- install(TARGETS calligra_shape_spreadsheet-deferred DESTINATION ${PLUGIN_INSTALL_DIR}/calligra/deferred)
- install(TARGETS calligra_shape_spreadsheet DESTINATION ${PLUGIN_INSTALL_DIR}/calligra/shapes)
 diff --git a/stage/part/CMakeLists.txt b/stage/part/CMakeLists.txt
-index 9bdc840fa65..700d80b154d 100644
+index 264d2fcd25f..d17dc716989 100644
 --- a/stage/part/CMakeLists.txt
 +++ b/stage/part/CMakeLists.txt
 @@ -60,8 +60,8 @@ set( calligrastageprivate_LIB_SRCS
@@ -299,5 +290,5 @@ index 9bdc840fa65..700d80b154d 100644
       KPrPdfPrintJob.cpp
       KPrSlidesSorterDocumentModel.cpp
 -- 
-2.23.0
+2.29.2
 

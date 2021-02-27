@@ -1,19 +1,19 @@
-From 5e16ef3344e098ed8fc948f1bbb592a27abc920e Mon Sep 17 00:00:00 2001
+From 2722c8e978d1e34b85b54d3e50f1690aa091017e Mon Sep 17 00:00:00 2001
 From: Damien Caliste <dcaliste@free.fr>
 Date: Tue, 11 Dec 2018 13:19:59 +0100
-Subject: [PATCH 05/14] Disable various dependencies in libs.
+Subject: [PATCH] Disable various dependencies in libs.
 
 ---
  libs/main/KoApplication.cpp         |  4 ++--
- libs/main/KoDocument.cpp            | 11 +++++++++--
+ libs/main/KoDocument.cpp            |  8 ++++++++
  libs/main/KoMainWindow.cpp          |  4 ++--
  libs/main/KoRecentDocumentsPane.cpp |  6 ++++++
  libs/store/KoNetAccess.cpp          | 24 ++++++++++++++++++++++--
  libs/store/KoNetAccess.h            |  2 +-
- 6 files changed, 42 insertions(+), 9 deletions(-)
+ 6 files changed, 41 insertions(+), 7 deletions(-)
 
 diff --git a/libs/main/KoApplication.cpp b/libs/main/KoApplication.cpp
-index a8416e0ad69..cea05f88796 100644
+index 51340964770..d0b3c92720e 100644
 --- a/libs/main/KoApplication.cpp
 +++ b/libs/main/KoApplication.cpp
 @@ -49,7 +49,7 @@
@@ -25,7 +25,7 @@ index a8416e0ad69..cea05f88796 100644
  #include <KAboutData>
  #include <KSharedConfig>
  #include <KDBusService>
-@@ -307,7 +307,7 @@ bool KoApplication::start()
+@@ -305,7 +305,7 @@ bool KoApplication::start()
          // to the recent dirs so the open dialog and open pane show
          // the directory from where the app was started, instead of
          // the last directory from where we opened a file
@@ -35,7 +35,7 @@ index a8416e0ad69..cea05f88796 100644
          KoPart *part = entry.createKoPart(&errorMsg);
          d->partList << part;
 diff --git a/libs/main/KoDocument.cpp b/libs/main/KoDocument.cpp
-index 2af8c9c216a..8ab1ca289d0 100644
+index ee4d9a168e9..8318175d9ab 100644
 --- a/libs/main/KoDocument.cpp
 +++ b/libs/main/KoDocument.cpp
 @@ -25,7 +25,9 @@
@@ -48,7 +48,7 @@ index 2af8c9c216a..8ab1ca289d0 100644
  
  #include "KoComponentData.h"
  #include "KoPart.h"
-@@ -624,12 +626,14 @@ bool KoDocument::saveFile()
+@@ -627,12 +629,14 @@ bool KoDocument::saveFile()
      }
      emit clearStatusBarMessage();
  
@@ -57,13 +57,13 @@ index 2af8c9c216a..8ab1ca289d0 100644
          KNotification *notify = new KNotification("DocumentSaved");
          notify->setText(i18n("Document <i>%1</i> saved", url().url()));
          notify->addContext("url", url().url());
-         QTimer::singleShot(0, notify, SLOT(sendEvent()));
+         QTimer::singleShot(0, notify, &KNotification::sendEvent);
      }
 +#endif
  
      return ret;
  }
-@@ -1594,10 +1598,12 @@ bool KoDocument::openFile()
+@@ -1609,10 +1613,12 @@ bool KoDocument::openFile()
      if (ok) {
          setMimeTypeAfterLoading(typeName);
  
@@ -71,22 +71,12 @@ index 2af8c9c216a..8ab1ca289d0 100644
          KNotification *notify = new KNotification("DocumentLoaded");
          notify->setText(i18n("Document <i>%1</i> loaded", url().url()));
          notify->addContext("url", url().url());
-         QTimer::singleShot(0, notify, SLOT(sendEvent()));
+         QTimer::singleShot(0, notify, &KNotification::sendEvent);
 +#endif
          d->parentPart->deleteOpenPane();
      }
  
-@@ -1671,8 +1677,7 @@ bool KoDocument::oldLoadAndParse(KoStore *store, const QString& filename, KoXmlD
-         << " Error message: " << errorMsg << endl;
-         d->lastErrorMessage = i18n("Parsing error in %1 at line %2, column %3\nError message: %4"
-                                    , filename  , errorLine, errorColumn ,
--                                   QCoreApplication::translate("QXml", errorMsg.toUtf8(), 0,
--                                                               QCoreApplication::UnicodeUTF8));
-+                                   QCoreApplication::translate("QXml", errorMsg.toUtf8()));
-         return false;
-     }
-     debugMain << "File" << filename << " loaded and parsed";
-@@ -1876,10 +1881,12 @@ bool KoDocument::loadNativeFormatFromStoreInternal(KoStore *store)
+@@ -1890,10 +1896,12 @@ bool KoDocument::loadNativeFormatFromStoreInternal(KoStore *store)
      }
  
      if (oasis && store->hasFile("VersionList.xml")) {
@@ -94,13 +84,13 @@ index 2af8c9c216a..8ab1ca289d0 100644
          KNotification *notify = new KNotification("DocumentHasVersions");
          notify->setText(i18n("Document <i>%1</i> contains several versions. Go to File->Versions to open an old version.", store->urlOfStore().url()));
          notify->addContext("url", store->urlOfStore().url());
-         QTimer::singleShot(0, notify, SLOT(sendEvent()));
+         QTimer::singleShot(0, notify, &KNotification::sendEvent);
 +#endif
  
          KoXmlDocument versionInfo;
          KoOdfReadStore oasisStore(store);
 diff --git a/libs/main/KoMainWindow.cpp b/libs/main/KoMainWindow.cpp
-index 73720ada303..bc104819dcc 100644
+index c06c6449017..4c536adfeaf 100644
 --- a/libs/main/KoMainWindow.cpp
 +++ b/libs/main/KoMainWindow.cpp
 @@ -45,7 +45,7 @@
@@ -112,7 +102,7 @@ index 73720ada303..bc104819dcc 100644
  #include <khelpmenu.h>
  #include <krecentfilesaction.h>
  #include <kaboutdata.h>
-@@ -607,7 +607,7 @@ void KoMainWindow::addRecentURL(const QUrl &url)
+@@ -604,7 +604,7 @@ void KoMainWindow::addRecentURL(const QUrl &url)
              }
              if (ok) {
                  KRecentDocument::add(QUrl::fromLocalFile(path));
@@ -122,7 +112,7 @@ index 73720ada303..bc104819dcc 100644
          } else {
              KRecentDocument::add(url.adjusted(QUrl::StripTrailingSlash));
 diff --git a/libs/main/KoRecentDocumentsPane.cpp b/libs/main/KoRecentDocumentsPane.cpp
-index fe3eaa5878b..3c3081d97c8 100644
+index e3c50193274..a3a962542f4 100644
 --- a/libs/main/KoRecentDocumentsPane.cpp
 +++ b/libs/main/KoRecentDocumentsPane.cpp
 @@ -27,7 +27,9 @@
@@ -135,7 +125,7 @@ index fe3eaa5878b..3c3081d97c8 100644
  
  #include <KoIcon.h>
  
-@@ -137,6 +139,7 @@ KoRecentDocumentsPane::KoRecentDocumentsPane(QWidget* parent, const QString& hea
+@@ -136,6 +138,7 @@ KoRecentDocumentsPane::KoRecentDocumentsPane(QWidget* parent, const QString& hea
      m_documentList->selectionModel()->select(firstIndex, QItemSelectionModel::Select);
      m_documentList->selectionModel()->setCurrentIndex(firstIndex, QItemSelectionModel::Select);
  
@@ -143,15 +133,15 @@ index fe3eaa5878b..3c3081d97c8 100644
      QStringList availablePlugins = KIO::PreviewJob::availablePlugins();
      KIO::PreviewJob *previewJob = KIO::filePreview(fileList, QSize(IconExtent, IconExtent), &availablePlugins);
  
-@@ -144,6 +147,7 @@ KoRecentDocumentsPane::KoRecentDocumentsPane(QWidget* parent, const QString& hea
-     connect(previewJob, SIGNAL(result(KJob*)), SLOT(previewResult(KJob*)));
-     connect(previewJob, SIGNAL(gotPreview(KFileItem,QPixmap)),
-             SLOT(updateIcon(KFileItem,QPixmap)));
+@@ -143,6 +146,7 @@ KoRecentDocumentsPane::KoRecentDocumentsPane(QWidget* parent, const QString& hea
+     connect(previewJob, &KJob::result, this, &KoRecentDocumentsPane::previewResult);
+     connect(previewJob, &KIO::PreviewJob::gotPreview,
+             this, &KoRecentDocumentsPane::updateIcon);
 +#endif
  }
  
  KoRecentDocumentsPane::~KoRecentDocumentsPane()
-@@ -164,6 +168,7 @@ void KoRecentDocumentsPane::selectionChanged(const QModelIndex& index)
+@@ -163,6 +167,7 @@ void KoRecentDocumentsPane::selectionChanged(const QModelIndex& index)
          if (preview.isNull()) {
              // need to fetch preview
              const KFileItemList fileList = KFileItemList() << fileItem;
@@ -159,16 +149,16 @@ index fe3eaa5878b..3c3081d97c8 100644
              QStringList availablePlugins = KIO::PreviewJob::availablePlugins();
              KIO::PreviewJob *previewJob = KIO::filePreview(fileList, QSize(PreviewExtent, PreviewExtent), &availablePlugins);
  
-@@ -171,6 +176,7 @@ void KoRecentDocumentsPane::selectionChanged(const QModelIndex& index)
-             connect(previewJob, SIGNAL(result(KJob*)), SLOT(previewResult(KJob*)));
-             connect(previewJob, SIGNAL(gotPreview(KFileItem,QPixmap)),
-                     SLOT(updatePreview(KFileItem,QPixmap)));
+@@ -170,6 +175,7 @@ void KoRecentDocumentsPane::selectionChanged(const QModelIndex& index)
+             connect(previewJob, &KJob::result, this, &KoRecentDocumentsPane::previewResult);
+             connect(previewJob, &KIO::PreviewJob::gotPreview,
+                     this, &KoRecentDocumentsPane::updatePreview);
 +#endif
  
              // for now set preview to icon
              preview = item->icon().pixmap(PreviewExtent);
 diff --git a/libs/store/KoNetAccess.cpp b/libs/store/KoNetAccess.cpp
-index ed9b5562a7f..3a05f7f6332 100644
+index 17149c34db2..7485fda6f9a 100644
 --- a/libs/store/KoNetAccess.cpp
 +++ b/libs/store/KoNetAccess.cpp
 @@ -39,7 +39,9 @@
@@ -187,8 +177,8 @@ index ed9b5562a7f..3a05f7f6332 100644
                      : KIO::file_copy(src, target, permissions, flags);
 +#ifdef HAVE_KJOBWIDGETS
      KJobWidgets::setWindow(job, window);
-     connect(job, SIGNAL(result(KJob*)),
-             this, SLOT(slotResult(KJob*)));
+     connect(job, &KJob::result,
+             this, &NetAccess::slotResult);
 +#endif
  
      enter_loop();
@@ -199,8 +189,8 @@ index ed9b5562a7f..3a05f7f6332 100644
                      : KIO::copy(src, target);
 +#ifdef HAVE_KJOBWIDGETS
      KJobWidgets::setWindow(job, window);
-     connect(job, SIGNAL(result(KJob*)),
-             this, SLOT(slotResult(KJob*)));
+     connect(job, &KJob::result,
+             this, &NetAccess::slotResult);
 +#endif
  
      enter_loop();
@@ -214,8 +204,8 @@ index ed9b5562a7f..3a05f7f6332 100644
      job->setDetails(details);
      job->setSide(side == SourceSide ? StatJob::SourceSide : StatJob::DestinationSide);
 +#ifdef HAVE_KJOBWIDGETS
-     connect(job, SIGNAL(result(KJob*)),
-             this, SLOT(slotResult(KJob*)));
+     connect(job, &KJob::result,
+             this, &NetAccess::slotResult);
 +#endif
      enter_loop();
      return d->bJobOK;
@@ -226,8 +216,8 @@ index ed9b5562a7f..3a05f7f6332 100644
      KIO::Job *job = KIO::del(url);
 +#ifdef HAVE_KJOBWIDGETS
      KJobWidgets::setWindow(job, window);
-     connect(job, SIGNAL(result(KJob*)),
-             this, SLOT(slotResult(KJob*)));
+     connect(job, &KJob::result,
+             this, &NetAccess::slotResult);
      enter_loop();
 +#endif
      return d->bJobOK;
@@ -239,8 +229,8 @@ index ed9b5562a7f..3a05f7f6332 100644
      KIO::Job *job = KIO::mkdir(url, permissions);
 +#ifdef HAVE_KJOBWIDGETS
      KJobWidgets::setWindow(job, window);
-     connect(job, SIGNAL(result(KJob*)),
-             this, SLOT(slotResult(KJob*)));
+     connect(job, &KJob::result,
+             this, &NetAccess::slotResult);
 +#endif
      enter_loop();
      return d->bJobOK;
@@ -251,8 +241,8 @@ index ed9b5562a7f..3a05f7f6332 100644
      KIO::Job *job = KIO::mimetype(url);
 +#ifdef HAVE_KJOBWIDGETS
      KJobWidgets::setWindow(job, window);
-     connect(job, SIGNAL(result(KJob*)),
-             this, SLOT(slotResult(KJob*)));
+     connect(job, &KJob::result,
+             this, &NetAccess::slotResult);
      connect(job, SIGNAL(mimetype(KIO::Job*,QString)),
              this, SLOT(slotMimetype(KIO::Job*,QString)));
 +#endif
@@ -265,8 +255,8 @@ index ed9b5562a7f..3a05f7f6332 100644
          KIO::Job *job = KIO::special(tempPathUrl, packedArgs);
 +#ifdef HAVE_KJOBWIDGETS
          KJobWidgets::setWindow(job, window);
-         connect(job, SIGNAL(result(KJob*)),
-                 this, SLOT(slotResult(KJob*)));
+         connect(job, &KJob::result,
+                 this, &NetAccess::slotResult);
 +#endif
          enter_loop();
  
@@ -285,8 +275,8 @@ index ed9b5562a7f..3a05f7f6332 100644
      }
  
 +#ifdef HAVE_KJOBWIDGETS
-     connect(job, SIGNAL(result(KJob*)),
-             this, SLOT(slotResult(KJob*)));
+     connect(job, &KJob::result,
+             this, &NetAccess::slotResult);
 +#endif
  
      const QMetaObject *meta = job->metaObject();
@@ -321,5 +311,5 @@ index 9d8cc4979a7..1c061d71e30 100644
      void slotData(KIO::Job *, const QByteArray &);
      void slotRedirection(KIO::Job *, const QUrl &);
 -- 
-2.23.0
+2.29.2
 

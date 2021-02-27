@@ -1,8 +1,8 @@
-From 1ad8ead8bd45feb95e794756b102f019d4942af3 Mon Sep 17 00:00:00 2001
+From bfbf48729f1bd0a76acad2e376d6a7b7c1253a1e Mon Sep 17 00:00:00 2001
 From: Damien Caliste <dcaliste@free.fr>
 Date: Wed, 22 Feb 2017 12:26:04 +0100
-Subject: [PATCH 09/14] Work around QLocale().timeFormat().simplified() seg
- faulting in Qt5.6 with GCC4.8.
+Subject: [PATCH] Work around QLocale().timeFormat().simplified() seg faulting
+ in Qt5.6 with GCC4.8.
 
 ---
  sheets/ValueParser.cpp | 5 ++++-
@@ -25,5 +25,5 @@ index 1735c784a49..ba98bf6dcd6 100644
          int n = format.indexOf("%S");
          format = format.left(n - 1);
 -- 
-2.23.0
+2.29.2
 

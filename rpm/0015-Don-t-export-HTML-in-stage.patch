@@ -1,7 +1,7 @@
-From 66fd1e031f0cee0d199bfebb0a1d280ebcaaafcd Mon Sep 17 00:00:00 2001
+From a78760d90abfd0ee900e17f491c278ad061188ee Mon Sep 17 00:00:00 2001
 From: Damien Caliste <dcaliste@free.fr>
 Date: Tue, 11 Dec 2018 13:06:25 +0100
-Subject: [PATCH 02/14] Don't export HTML in stage.
+Subject: [PATCH] Don't export HTML in stage.
 
 ---
  stage/part/KPrHtmlExport.cpp          | 4 ++--
@@ -10,7 +10,7 @@ Subject: [PATCH 02/14] Don't export HTML in stage.
  3 files changed, 10 insertions(+), 2 deletions(-)
 
 diff --git a/stage/part/KPrHtmlExport.cpp b/stage/part/KPrHtmlExport.cpp
-index 20a856d176f..d3680413b85 100644
+index 4f9d0061cf1..1c428a6fdf4 100644
 --- a/stage/part/KPrHtmlExport.cpp
 +++ b/stage/part/KPrHtmlExport.cpp
 @@ -28,7 +28,7 @@
@@ -26,13 +26,13 @@ index 20a856d176f..d3680413b85 100644
          if(m_parameters.openBrowser){
              QUrl url = m_parameters.destination;
              url.setPath(url.path() + QLatin1String("/index.html"));
--            KRun::runUrl(url, "text/html", m_parameters.kprView);
-+            // KRun::runUrl(url, "text/html", m_parameters.kprView);
+-            KRun::runUrl(url, "text/html", m_parameters.kprView, KRun::RunFlags());
++            // KRun::runUrl(url, "text/html", m_parameters.kprView, KRun::RunFlags());
          }
      }
  }
 diff --git a/stage/part/KPrView.cpp b/stage/part/KPrView.cpp
-index b750f5e03d4..87a421c6e94 100644
+index 45ecdcf2863..4315dd24a64 100644
 --- a/stage/part/KPrView.cpp
 +++ b/stage/part/KPrView.cpp
 @@ -63,7 +63,9 @@
@@ -62,7 +62,7 @@ index b750f5e03d4..87a421c6e94 100644
  
  KoPrintJob *KPrView::createPdfPrintJob()
 diff --git a/stage/part/ui/KPrHtmlExportDialog.cpp b/stage/part/ui/KPrHtmlExportDialog.cpp
-index 3e2bd7ae1ec..41151517af6 100644
+index 3ec139ae911..212f1a09152 100644
 --- a/stage/part/ui/KPrHtmlExportDialog.cpp
 +++ b/stage/part/ui/KPrHtmlExportDialog.cpp
 @@ -34,7 +34,9 @@
@@ -84,7 +84,7 @@ index 3e2bd7ae1ec..41151517af6 100644
      QList<KoPAPageBase*> slides;
      QStringList slidesNames;
 @@ -263,6 +266,7 @@ void KPrHtmlExportDialog::generatePreview(int item)
-     QUrl url = previewGenerator.exportPreview(KPrHtmlExport::Parameter(templateUrl(), static_cast<KPrView*>(parentWidget()), slides, QUrl(),
+     previewGenerator.exportPreview(KPrHtmlExport::Parameter(templateUrl(), static_cast<KPrView*>(parentWidget()), slides, QUrl(),
                                                this->author(), ui.klineedit_title->text(), slidesNames, false));
  //     preview.mainFrame()->load(url);
 +#endif
@@ -92,5 +92,5 @@ index 3e2bd7ae1ec..41151517af6 100644
  
  void KPrHtmlExportDialog::renderPreview()
 -- 
-2.23.0
+2.29.2
 

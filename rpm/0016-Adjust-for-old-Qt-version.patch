@@ -1,0 +1,322 @@
+From 1d385f4d2e0edc02b32b98562f1c8b27c322dee7 Mon Sep 17 00:00:00 2001
+From: Damien Caliste <dcaliste@free.fr>
+Date: Sat, 27 Feb 2021 17:16:01 +0100
+Subject: [PATCH] Adjust for old Qt version.
+
+---
+ filters/sheets/excel/sidewinder/globalssubstreamhandler.cpp | 4 ++--
+ filters/sheets/excel/sidewinder/workbook.cpp                | 2 +-
+ filters/sheets/xlsx/XlsxXmlChartReader.cpp                  | 2 +-
+ filters/stage/pptx/PptxXmlDocumentReader.cpp                | 2 ++
+ libs/main/KoDetailsPane.cpp                                 | 2 ++
+ libs/main/KoDocument.cpp                                    | 1 +
+ libs/main/KoView.cpp                                        | 2 ++
+ libs/main/config/KoConfigMiscPage.cpp                       | 2 ++
+ libs/odf/KoOdfNumberStyles.cpp                              | 2 +-
+ libs/text/OdfTextTrackStyles.cpp                            | 2 ++
+ libs/widgets/KoPageLayoutWidget.cpp                         | 2 ++
+ plugins/variables/DateVariable.cpp                          | 2 +-
+ sheets/dialogs/AutoFormatDialog.cpp                         | 2 ++
+ sheets/dialogs/ConditionalDialog.cpp                        | 2 ++
+ sheets/shape/TableTool.cpp                                  | 4 ++--
+ sheets/ui/CellToolBase.cpp                                  | 2 ++
+ words/part/dockers/KWStatisticsWidget.cpp                   | 4 ++++
+ words/part/widgets/KoFindToolbar.cpp                        | 4 ++++
+ 18 files changed, 35 insertions(+), 8 deletions(-)
+
+diff --git a/filters/sheets/excel/sidewinder/globalssubstreamhandler.cpp b/filters/sheets/excel/sidewinder/globalssubstreamhandler.cpp
+index 89a0a273e29..9bcb42e35a0 100644
+--- a/filters/sheets/excel/sidewinder/globalssubstreamhandler.cpp
++++ b/filters/sheets/excel/sidewinder/globalssubstreamhandler.cpp
+@@ -565,9 +565,9 @@ void GlobalsSubStreamHandler::handleDateMode(DateModeRecord* record)
+     if (!record) return;
+ 
+     if (record->isBase1904())
+-        d->workbook->setBaseDate(QDate(1904, 1, 1).startOfDay());
++        d->workbook->setBaseDate(QDateTime(QDate(1904, 1, 1), QTime(0, 0)));
+     else
+-        d->workbook->setBaseDate(QDate(1899, 12, 30).startOfDay());
++        d->workbook->setBaseDate(QDateTime(QDate(1899, 12, 30), QTime(0, 0)));
+ }
+ 
+ void GlobalsSubStreamHandler::handleExternBook(ExternBookRecord* record)
+diff --git a/filters/sheets/excel/sidewinder/workbook.cpp b/filters/sheets/excel/sidewinder/workbook.cpp
+index 486dd6c008c..24c08657c7b 100644
+--- a/filters/sheets/excel/sidewinder/workbook.cpp
++++ b/filters/sheets/excel/sidewinder/workbook.cpp
+@@ -56,7 +56,7 @@ Workbook::Workbook(KoStore* store)
+     d->activeTab = -1;
+     d->passwd = 0; // password protection disabled
+     d->dggContainer = 0;
+-    d->baseDate = QDate(1899, 12, 30).startOfDay();
++    d->baseDate = QDateTime(QDate(1899, 12, 30), QTime(0, 0));
+ 
+     // initialize palette
+     static const char *const default_palette[64-8] = { // default palette for all but the first 8 colors
+diff --git a/filters/sheets/xlsx/XlsxXmlChartReader.cpp b/filters/sheets/xlsx/XlsxXmlChartReader.cpp
+index 5f050a30ad7..9a5654f033a 100644
+--- a/filters/sheets/xlsx/XlsxXmlChartReader.cpp
++++ b/filters/sheets/xlsx/XlsxXmlChartReader.cpp
+@@ -3410,7 +3410,7 @@ QString convertToFormat( KoGenStyle::Type formatType, const QString& formatStrin
+         case KoGenStyle::NumericDateStyle: {
+             QString f = formatString;
+             f.replace( QRegExp( "[m{1}]" ), "M" );
+-            QDateTime dt = QDate( 1899, 12, 30 ).startOfDay();
++            QDateTime dt(QDate( 1899, 12, 30 ), QTime(0, 0));
+             return dt.addDays( value.toInt() ).toString( f );
+         }
+         case KoGenStyle::NumericTimeStyle: {
+diff --git a/filters/stage/pptx/PptxXmlDocumentReader.cpp b/filters/stage/pptx/PptxXmlDocumentReader.cpp
+index 11b5ad266b9..d53656707b1 100644
+--- a/filters/stage/pptx/PptxXmlDocumentReader.cpp
++++ b/filters/stage/pptx/PptxXmlDocumentReader.cpp
+@@ -45,6 +45,8 @@
+ #include <KoCell.h>
+ #include <KoCellStyle.h>
+ 
++#include <memory>
++
+ #define MSOOXML_CURRENT_NS "p"
+ #define MSOOXML_CURRENT_CLASS PptxXmlDocumentReader
+ #define BIND_READ_CLASS MSOOXML_CURRENT_CLASS
+diff --git a/libs/main/KoDetailsPane.cpp b/libs/main/KoDetailsPane.cpp
+index c850d9d73b1..b2a6ecfb8f6 100644
+--- a/libs/main/KoDetailsPane.cpp
++++ b/libs/main/KoDetailsPane.cpp
+@@ -58,9 +58,11 @@ KoDetailsPane::KoDetailsPane(QWidget* parent, const QString& header)
+ 
+     connect(m_documentList->selectionModel(), &QItemSelectionModel::currentChanged,
+             this, &KoDetailsPane::selectionChanged);
++#ifdef HAVE_QOVERLOAD
+     connect(m_documentList, &QTreeView::doubleClicked,
+             this, QOverload<const QModelIndex &>::of(&KoDetailsPane::openFile));
+     connect(m_openButton, &QPushButton::clicked, this, QOverload<>::of(&KoDetailsPane::openFile));
++#endif
+ }
+ 
+ KoDetailsPane::~KoDetailsPane()
+diff --git a/libs/main/KoDocument.cpp b/libs/main/KoDocument.cpp
+index cdf339e2a91..99207058d40 100644
+--- a/libs/main/KoDocument.cpp
++++ b/libs/main/KoDocument.cpp
+@@ -88,6 +88,7 @@
+ #include "KoUndoStackAction.h"
+ 
+ #include <unistd.h>
++#include <memory>
+ 
+ using namespace std;
+ 
+diff --git a/libs/main/KoView.cpp b/libs/main/KoView.cpp
+index f771bd2d8ca..af328ea7447 100644
+--- a/libs/main/KoView.cpp
++++ b/libs/main/KoView.cpp
+@@ -341,7 +341,9 @@ void KoView::setupGlobalActions()
+     actionCollection()->setDefaultShortcut(undo, QKeySequence::Undo);
+     actionCollection()->setDefaultShortcut(redo, QKeySequence::Redo);
+     d->actionAuthor  = new KSelectAction(koIcon("user-identity"), i18n("Active Author Profile"), this);
++#ifdef HAVE_QOVERLOAD
+     connect(d->actionAuthor, QOverload<const QString &>::of(&KSelectAction::triggered), this, &KoView::changeAuthorProfile);
++#endif
+     actionCollection()->addAction("settings_active_author", d->actionAuthor);
+ 
+     slotUpdateAuthorProfileActions();
+diff --git a/libs/main/config/KoConfigMiscPage.cpp b/libs/main/config/KoConfigMiscPage.cpp
+index e866a61cd52..a7644cba1c4 100644
+--- a/libs/main/config/KoConfigMiscPage.cpp
++++ b/libs/main/config/KoConfigMiscPage.cpp
+@@ -117,7 +117,9 @@ KoConfigMiscPage::KoConfigMiscPage(KoDocument* doc, KoDocumentResourceManager *d
+ 
+     miscGroupBox->setLayout(miscLayout);
+ 
++#ifdef HAVE_QOVERLOAD
+     connect(d->unit, QOverload<int>::of(&QComboBox::activated), this, &KoConfigMiscPage::slotUnitChanged);
++#endif
+     connect(d->pasteAtCursor, &QAbstractButton::clicked, d->pasteOffset, &QWidget::setDisabled);
+ }
+ 
+diff --git a/libs/odf/KoOdfNumberStyles.cpp b/libs/odf/KoOdfNumberStyles.cpp
+index fef0b68471a..ce16673b523 100644
+--- a/libs/odf/KoOdfNumberStyles.cpp
++++ b/libs/odf/KoOdfNumberStyles.cpp
+@@ -208,7 +208,7 @@ QString formatBoolean(const QString &value, const QString &format)
+ 
+ QString formatDate(int value, const QString &format)
+ {
+-    QDateTime dt = QDate(1899, 12, 30).startOfDay(); // reference date
++    QDateTime dt(QDate(1899, 12, 30), QTime(0,0)); // reference date
+     dt = dt.addDays(value);
+     return dt.toString(format);
+ }
+diff --git a/libs/text/OdfTextTrackStyles.cpp b/libs/text/OdfTextTrackStyles.cpp
+index 120d7514a5b..c417339422d 100644
+--- a/libs/text/OdfTextTrackStyles.cpp
++++ b/libs/text/OdfTextTrackStyles.cpp
+@@ -61,10 +61,12 @@ OdfTextTrackStyles::OdfTextTrackStyles(KoStyleManager *manager)
+ {
+     connect(manager, &KoStyleManager::editHasBegun, this, &OdfTextTrackStyles::beginEdit);
+     connect(manager, &KoStyleManager::editHasEnded, this, &OdfTextTrackStyles::endEdit);
++#ifdef HAVE_QOVERLOAD
+     connect(manager, QOverload<int,const KoCharacterStyle*,const KoCharacterStyle*>::of(&KoStyleManager::styleHasChanged),
+             this,    QOverload<int,const KoCharacterStyle*,const KoCharacterStyle*>::of(&OdfTextTrackStyles::recordStyleChange));
+     connect(manager, QOverload<int,const KoParagraphStyle*,const KoParagraphStyle*>::of(&KoStyleManager::styleHasChanged),
+             this,    QOverload<int,const KoParagraphStyle*,const KoParagraphStyle*>::of(&OdfTextTrackStyles::recordStyleChange));
++#endif
+ }
+ 
+ OdfTextTrackStyles::~OdfTextTrackStyles()
+diff --git a/libs/widgets/KoPageLayoutWidget.cpp b/libs/widgets/KoPageLayoutWidget.cpp
+index f9e72e77463..a87192a4079 100644
+--- a/libs/widgets/KoPageLayoutWidget.cpp
++++ b/libs/widgets/KoPageLayoutWidget.cpp
+@@ -67,10 +67,12 @@ KoPageLayoutWidget::KoPageLayoutWidget(QWidget *parent, const KoPageLayout &layo
+     d->widget.sizes->addItems(KoPageFormat::localizedPageFormatNames());
+     setPageSpread(false);
+ 
++#ifdef HAVE_QOVERLOAD
+     connect(d->widget.sizes, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &KoPageLayoutWidget::sizeChanged);
+     connect(d->widget.units, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &KoPageLayoutWidget::slotUnitChanged);
+     connect(group2, QOverload<int>::of(&QButtonGroup::buttonClicked), this, &KoPageLayoutWidget::facingPagesChanged);
+     connect(d->orientationGroup, QOverload<int>::of(&QButtonGroup::buttonClicked), this, &KoPageLayoutWidget::orientationChanged);
++#endif
+     connect(d->widget.width, &KoUnitDoubleSpinBox::valueChangedPt, this, &KoPageLayoutWidget::optionsChanged);
+     connect(d->widget.height, &KoUnitDoubleSpinBox::valueChangedPt, this, &KoPageLayoutWidget::optionsChanged);
+     connect(d->widget.topMargin, &KoUnitDoubleSpinBox::valueChangedPt, this, &KoPageLayoutWidget::marginsChanged);
+diff --git a/plugins/variables/DateVariable.cpp b/plugins/variables/DateVariable.cpp
+index 130198cc9a2..50d2bd0b4aa 100644
+--- a/plugins/variables/DateVariable.cpp
++++ b/plugins/variables/DateVariable.cpp
+@@ -128,7 +128,7 @@ bool DateVariable::loadOdf(const KoXmlElement & element, KoShapeLoadingContext &
+                 m_datetime = QDateTime(QDate::currentDate(), time);
+             } else {
+                 const QDate date = QDate::fromString(value, Qt::ISODate);
+-                m_datetime = date.startOfDay();
++                m_datetime = QDateTime(date, QTime(0, 0));
+             }
+             m_valueType = DateOrTime;
+         }
+diff --git a/sheets/dialogs/AutoFormatDialog.cpp b/sheets/dialogs/AutoFormatDialog.cpp
+index 4ac63dcb8c9..752af011284 100644
+--- a/sheets/dialogs/AutoFormatDialog.cpp
++++ b/sheets/dialogs/AutoFormatDialog.cpp
+@@ -116,7 +116,9 @@ AutoFormatDialog::AutoFormatDialog(QWidget* parent, Selection* selection)
+     slotActivated(0);
+ 
+     connect(this, &KoDialog::okClicked, this, &AutoFormatDialog::slotOk);
++#ifdef HAVE_QOVERLOAD
+     connect(d->combo, QOverload<int>::of(&QComboBox::activated), this, &AutoFormatDialog::slotActivated);
++#endif
+ }
+ 
+ AutoFormatDialog::~AutoFormatDialog()
+diff --git a/sheets/dialogs/ConditionalDialog.cpp b/sheets/dialogs/ConditionalDialog.cpp
+index b6e57393969..6734b6f51e8 100644
+--- a/sheets/dialogs/ConditionalDialog.cpp
++++ b/sheets/dialogs/ConditionalDialog.cpp
+@@ -180,9 +180,11 @@ ConditionalWidget::ConditionalWidget(QWidget* parent, const char* /*name*/, Qt::
+     textLabel2_2->setText(i18n("Cell style"));
+     textLabel2_3->setText(i18n("Cell style"));
+ 
++#ifdef HAVE_QOVERLOAD
+     connect(m_condition_1, QOverload<const QString &>::of(&QComboBox::highlighted), this, &ConditionalWidget::slotTextChanged1);
+     connect(m_condition_2, QOverload<const QString &>::of(&QComboBox::highlighted), this, &ConditionalWidget::slotTextChanged2);
+     connect(m_condition_3, QOverload<const QString &>::of(&QComboBox::highlighted), this, &ConditionalWidget::slotTextChanged3);
++#endif
+ }
+ 
+ ConditionalWidget::~ConditionalWidget()
+diff --git a/sheets/shape/TableTool.cpp b/sheets/shape/TableTool.cpp
+index 03d5ac31cf8..604e9ae5e3a 100644
+--- a/sheets/shape/TableTool.cpp
++++ b/sheets/shape/TableTool.cpp
+@@ -157,7 +157,7 @@ void TableTool::Private::setTools()
+     horizontalScrollRect = QRectF(shapeRect.left(), shapeRect.bottom(), shapeRect.width(), margins.bottom());
+     horizontalScrollBar->setFocusPolicy(Qt::StrongFocus);
+     horizontalScrollBar->setInvertedControls(false);
+-    horizontalScrollBar->setMaximum(std::max(tableShape->size().width()*10, sheet->columnPosition(maxColumn)));
++    horizontalScrollBar->setMaximum(std::max((double)tableShape->size().width()*10, sheet->columnPosition(maxColumn)));
+     horizontalScrollBar->setPageStep(tableShape->size().width());
+     horizontalScrollBar->setSingleStep(1);
+     horizontalScrollBar->setValue(tableShape->topLeftOffset().x());
+@@ -170,7 +170,7 @@ void TableTool::Private::setTools()
+     }
+     verticalScrollRect = QRectF(shapeRect.right(), shapeRect.top(), margins.right(), shapeRect.height());
+     verticalScrollBar->setFocusPolicy(Qt::StrongFocus);
+-    verticalScrollBar->setMaximum(std::max(tableShape->size().height()*10, sheet->rowPosition(maxRow)));
++    verticalScrollBar->setMaximum(std::max((double)tableShape->size().height()*10, sheet->rowPosition(maxRow)));
+     verticalScrollBar->setPageStep(tableShape->size().height());
+     verticalScrollBar->setSingleStep(1);
+     verticalScrollBar->setValue(tableShape->topLeftOffset().y());
+diff --git a/sheets/ui/CellToolBase.cpp b/sheets/ui/CellToolBase.cpp
+index 7f42c68d4aa..ce6e9af13ff 100644
+--- a/sheets/ui/CellToolBase.cpp
++++ b/sheets/ui/CellToolBase.cpp
+@@ -3147,8 +3147,10 @@ void CellToolBase::initFindReplace()
+     Q_ASSERT(findObj);
+     connect(findObj, SIGNAL(highlight(QString,int,int)),
+             this, SLOT(slotHighlight(QString,int,int)));
++#ifdef HAVE_FIND
+     connect(findObj, &KFind::findNext,
+             this, &CellToolBase::findNext);
++#endif
+ 
+     bool bck = d->findOptions & KFind::FindBackwards;
+     Sheet* currentSheet = d->searchInSheets.currentSheet;
+diff --git a/words/part/dockers/KWStatisticsWidget.cpp b/words/part/dockers/KWStatisticsWidget.cpp
+index c023a246f56..65b2c944b31 100644
+--- a/words/part/dockers/KWStatisticsWidget.cpp
++++ b/words/part/dockers/KWStatisticsWidget.cpp
+@@ -291,11 +291,13 @@ void KWStatisticsWidget::setCanvas(KWCanvas* canvas)
+     m_resourceManager = canvas->resourceManager();
+     m_selection = canvas->shapeManager()->selection();
+     m_document = canvas->document();
++#ifdef HAVE_QOVERLOAD
+     // It is apparently possible to have a document which lacks a main frameset...
+     // so let's handle that and avoid crashes.
+     if (m_document->mainFrameSet()) {
+         connect(static_cast<KoTextDocumentLayout*>(m_document->mainFrameSet()->document()->documentLayout()), &KoTextDocumentLayout::finishedLayout, m_timer, QOverload<>::of(&QTimer::start));
+     }
++#endif
+     m_timer->start();
+ }
+ 
+@@ -348,9 +350,11 @@ void KWStatisticsWidget::selectionChanged()
+     if (!shape) return;
+     KWTextFrameSet *fs = dynamic_cast<KWTextFrameSet*>(KWFrameSet::from(shape));
+     if (fs) {
++#ifdef HAVE_QOVERLOAD
+         if (m_textDocument) {
+             disconnect(m_textDocument, &QTextDocument::contentsChanged, m_timer, QOverload<>::of(&QTimer::start));
+         }
++#endif
+         m_textDocument = fs->document();
+     }
+ }
+diff --git a/words/part/widgets/KoFindToolbar.cpp b/words/part/widgets/KoFindToolbar.cpp
+index 7337a41c4cc..f8cad202149 100644
+--- a/words/part/widgets/KoFindToolbar.cpp
++++ b/words/part/widgets/KoFindToolbar.cpp
+@@ -71,8 +71,10 @@ KoFindToolbar::KoFindToolbar(KoFindBase *finder, KActionCollection *ac, QWidget
+     d->searchLine->setCompletedItems(d->searchCompletionItems);
+     d->searchLine->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+     connect(d->searchLine, &KHistoryComboBox::editTextChanged, this, [&]() { d->textTimeout->start(); });
++#ifdef HAVE_QOVERLOAD
+     connect(d->searchLine, QOverload<>::of(&KHistoryComboBox::returnPressed), this, [&]() { d->returnPressed(); });
+     connect(d->searchLine, QOverload<const QString&>::of(&KHistoryComboBox::returnPressed), d->searchLine, &KHistoryComboBox::addToHistory);
++#endif
+     connect(d->searchLine, &KHistoryComboBox::cleared, finder, &KoFindBase::finished);
+     layout->addWidget(d->searchLine, 0, 2);
+ 
+@@ -131,7 +133,9 @@ KoFindToolbar::KoFindToolbar(KoFindBase *finder, KActionCollection *ac, QWidget
+     d->replaceLine = new KHistoryComboBox(true, this);
+     d->replaceLine->setHistoryItems(d->replaceCompletionItems);
+     d->replaceLine->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
++#ifdef HAVE_QOVERLOAD
+     connect(d->replaceLine, QOverload<>::of(&KHistoryComboBox::returnPressed), this, [&]() { d->replace(); });
++#endif
+     layout->addWidget(d->replaceLine, 1, 2);
+ 
+     d->replaceButton = new QToolButton(this);
+-- 
+2.29.2
+
