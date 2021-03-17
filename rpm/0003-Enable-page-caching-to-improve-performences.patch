@@ -1,7 +1,7 @@
-From 66fa918f0550fa735b2cb3496cdddf33d5d3df6a Mon Sep 17 00:00:00 2001
+From 5ef197edb2cd14ae519371e2e50f6bfc2fd4c0d2 Mon Sep 17 00:00:00 2001
 From: Damien Caliste <dcaliste@free.fr>
 Date: Tue, 11 Dec 2018 13:26:34 +0100
-Subject: [PATCH 10/14] Enable page caching to improve performences.
+Subject: [PATCH] Enable page caching to improve performences.
 
 ---
  words/part/KWCanvasBase.cpp | 2 +-
@@ -21,5 +21,5 @@ index f20322ab14b..7e9a35ee602 100644
  
  KWCanvasBase::~KWCanvasBase()
 -- 
-2.23.0
+2.29.2
 

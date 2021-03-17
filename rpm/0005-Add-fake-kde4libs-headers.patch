@@ -1,7 +1,7 @@
-From 52e4cd8852394df7ea8dc3f6a812e2c93d494ccb Mon Sep 17 00:00:00 2001
+From f9bb39a2c9d6636f74ca8b83a1aef64132687fd9 Mon Sep 17 00:00:00 2001
 From: Damien Caliste <dcaliste@free.fr>
 Date: Tue, 11 Dec 2018 13:02:17 +0100
-Subject: [PATCH 01/14] Add fake kde4libs headers.
+Subject: [PATCH] Add fake kde4libs headers.
 
 ---
  plugins/pictureshape/kfile.h       |   64 +
@@ -4075,5 +4075,5 @@ index 00000000000..11077d4cef4
 +
 +#endif
 -- 
-2.23.0
+2.29.2
 

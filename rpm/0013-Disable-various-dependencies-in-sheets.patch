@@ -1,7 +1,7 @@
-From 16fa6329a8d432d7ea0770e720cc4664afe38dec Mon Sep 17 00:00:00 2001
+From 7a4c6ceeb46fb468e5685d8449b971378a182a50 Mon Sep 17 00:00:00 2001
 From: Damien Caliste <dcaliste@free.fr>
 Date: Tue, 11 Dec 2018 13:25:21 +0100
-Subject: [PATCH 08/14] Disable various dependencies in sheets.
+Subject: [PATCH] Disable various dependencies in sheets.
 
 ---
  sheets/commands/AbstractRegionCommand.cpp | 14 ++++-----
@@ -54,7 +54,7 @@ index 7d0872af390..808aff118c8 100644
                      }
                  }
 diff --git a/sheets/commands/SpellCheckCommand.cpp b/sheets/commands/SpellCheckCommand.cpp
-index 356427655ee..20080b5c24f 100644
+index d7eb6b7811c..83b3ba3400f 100644
 --- a/sheets/commands/SpellCheckCommand.cpp
 +++ b/sheets/commands/SpellCheckCommand.cpp
 @@ -31,8 +31,8 @@
@@ -89,8 +89,8 @@ index 356427655ee..20080b5c24f 100644
 +    // d->dialog = new Sonnet::Dialog(this, canvasBase->canvasWidget());
      d->command = 0;
  
-     connect(this, SIGNAL(done()),
-             this, SLOT(finishCommand()));
+     connect(this, &Sonnet::BackgroundChecker::done,
+             this, &SpellCheckCommand::finishCommand);
 -    connect(d->dialog, SIGNAL(replace(QString,int,QString)),
 -            this, SLOT(replace(QString,int,QString)));
 +    // connect(d->dialog, SIGNAL(replace(QString,int,QString)),
@@ -139,7 +139,7 @@ index 25a99d15316..31ab144518a 100644
  class KoCanvasBase;
  
 diff --git a/sheets/dialogs/DocumentSettingsDialog.cpp b/sheets/dialogs/DocumentSettingsDialog.cpp
-index 39ccd69f6a9..266928f445d 100644
+index 84c237be50c..82b6f8105cd 100644
 --- a/sheets/dialogs/DocumentSettingsDialog.cpp
 +++ b/sheets/dialogs/DocumentSettingsDialog.cpp
 @@ -39,7 +39,7 @@
@@ -152,7 +152,7 @@ index 39ccd69f6a9..266928f445d 100644
  #include <KoIcon.h>
  #include "CalculationSettings.h"
 diff --git a/sheets/dialogs/LinkDialog.cpp b/sheets/dialogs/LinkDialog.cpp
-index 50c94e4dcbc..537ae85f5b3 100644
+index 340137f5995..b165b3f489b 100644
 --- a/sheets/dialogs/LinkDialog.cpp
 +++ b/sheets/dialogs/LinkDialog.cpp
 @@ -43,8 +43,8 @@
@@ -192,8 +192,8 @@ index 50c94e4dcbc..537ae85f5b3 100644
      recentFile->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 @@ -132,8 +132,8 @@ LinkDialog::LinkDialog(QWidget* parent, Selection* selection)
      fLayout->addItem(new QSpacerItem(0, 40, QSizePolicy::Minimum, QSizePolicy::MinimumExpanding));
-     connect(d->fileText, SIGNAL(textChanged(QString)), this,
-             SLOT(setText(QString)));
+     connect(d->fileText, &QLineEdit::textChanged, this,
+             &LinkDialog::setText);
 -    QObject::connect(recentFile, SIGNAL(highlighted(QString)),
 -                     d->fileLink->lineEdit(), SLOT(setText(QString)));
 +    // QObject::connect(recentFile, SIGNAL(highlighted(QString)),
@@ -220,7 +220,7 @@ index 50c94e4dcbc..537ae85f5b3 100644
          return;
      }
 diff --git a/sheets/part/dialogs/PreferenceDialog.cpp b/sheets/part/dialogs/PreferenceDialog.cpp
-index d3c09e3aca8..e013789035e 100644
+index ad3c41adffa..064219b03cb 100644
 --- a/sheets/part/dialogs/PreferenceDialog.cpp
 +++ b/sheets/part/dialogs/PreferenceDialog.cpp
 @@ -44,11 +44,11 @@
@@ -327,7 +327,7 @@ index d3c09e3aca8..e013789035e 100644
  }
  
 diff --git a/sheets/ui/CellToolBase.cpp b/sheets/ui/CellToolBase.cpp
-index 6a38dc6edbc..51eee9a1e97 100644
+index 4847082ead2..7f42c68d4aa 100644
 --- a/sheets/ui/CellToolBase.cpp
 +++ b/sheets/ui/CellToolBase.cpp
 @@ -75,7 +75,7 @@
@@ -340,7 +340,7 @@ index 6a38dc6edbc..51eee9a1e97 100644
  #include "commands/ValidityCommand.h"
  
 @@ -809,9 +809,9 @@ CellToolBase::CellToolBase(KoCanvasBase* canvas)
-     connect(action, SIGNAL(triggered(bool)), this, SLOT(gotoCell()));
+     connect(action, &QAction::triggered, this, &CellToolBase::gotoCell);
      action->setToolTip(i18n("Move to a particular cell"));
  
 -    action = KStandardAction::spelling(this, SLOT(spellCheck()), this);
@@ -352,7 +352,7 @@ index 6a38dc6edbc..51eee9a1e97 100644
  
      action = new QAction(koIconWanted("not used in UI, but devs might do, so nice to have", "inspector"), i18n("Run Inspector..."), this);
      addAction("inspector", action);
-@@ -3402,8 +3402,8 @@ void CellToolBase::gotoCell()
+@@ -3421,8 +3421,8 @@ void CellToolBase::gotoCell()
  
  void CellToolBase::spellCheck()
  {
@@ -394,5 +394,5 @@ index 50b6667efe3..b9caa87eb64 100644
      }
  
 -- 
-2.23.0
+2.29.2
 

@@ -1,0 +1,238 @@
+From 8421b6992bada8de11c600416f0bbee8cb0f35b5 Mon Sep 17 00:00:00 2001
+From: Damien Caliste <dcaliste@free.fr>
+Date: Tue, 16 Mar 2021 10:49:59 +0100
+Subject: [PATCH] Revert "Another group of old-style connects migrated to
+ new-style"
+
+This reverts commit 33973e1295bdf4f5785e32b33f6847695bef4c0e.
+---
+ libs/widgets/KoColorSetWidget.cpp            |  4 ++--
+ words/part/KWPart.cpp                        | 16 ++++++--------
+ words/part/KWPart.h                          |  2 +-
+ words/part/KWStatusBar.cpp                   |  6 +++---
+ words/part/KWView.cpp                        |  6 +++---
+ words/part/dialogs/KWAnchoringProperties.cpp | 22 ++++++++++----------
+ words/part/dialogs/KWDocumentColumns.cpp     |  2 +-
+ words/part/dialogs/KWStartupWidget.cpp       |  2 +-
+ words/plugins/scripting/Tool.h               |  2 +-
+ 9 files changed, 29 insertions(+), 33 deletions(-)
+
+diff --git a/libs/widgets/KoColorSetWidget.cpp b/libs/widgets/KoColorSetWidget.cpp
+index bb00be8d765..8a14fca7789 100644
+--- a/libs/widgets/KoColorSetWidget.cpp
++++ b/libs/widgets/KoColorSetWidget.cpp
+@@ -64,7 +64,7 @@ void KoColorSetWidget::KoColorSetWidgetPrivate::fillColors()
+             patch->setFrameStyle(QFrame::Plain | QFrame::Box);
+             patch->setLineWidth(1);
+             patch->setColor(colorSet->getColor(i).color);
+-            connect(patch, &KoColorPatch::triggered, thePublic, [this](KoColorPatch *patch) { thePublic->d->colorTriggered(patch); });
++            connect(patch, SIGNAL(triggered(KoColorPatch*)), thePublic, SLOT(colorTriggered(KoColorPatch*)));
+             colorSetLayout->addWidget(patch, p/16, p%16);
+             ++p;
+         }
+@@ -116,7 +116,7 @@ void KoColorSetWidget::KoColorSetWidgetPrivate::addRecent(const KoColor &color)
+         recentPatches[numRecents] = new KoColorPatch(thePublic);
+         recentPatches[numRecents]->setFrameShape(QFrame::Box);
+         recentsLayout->insertWidget(numRecents+1, recentPatches[numRecents]);
+-        connect(recentPatches[numRecents], &KoColorPatch::triggered, thePublic, [this](KoColorPatch *patch) { thePublic->d->colorTriggered(patch); });
++        connect(recentPatches[numRecents], SIGNAL(triggered(KoColorPatch*)), thePublic, SLOT(colorTriggered(KoColorPatch*)));
+         numRecents++;
+     }
+     // shift colors to the right
+diff --git a/words/part/KWPart.cpp b/words/part/KWPart.cpp
+index bb75bf2883e..2e291d8fb35 100644
+--- a/words/part/KWPart.cpp
++++ b/words/part/KWPart.cpp
+@@ -68,20 +68,16 @@ KWDocument *KWPart::document() const
+ 
+ KoView *KWPart::createViewInstance(KoDocument *document, QWidget *parent)
+ {
+-    auto kwdocument = qobject_cast<KWDocument*>(document);
+-    KWView *view = new KWView(this, kwdocument, parent);
+-    setupViewInstance(kwdocument, view);
++    KWView *view = new KWView(this, qobject_cast<KWDocument*>(document), parent);
++    setupViewInstance(document, view);
+     return view;
+ }
+ 
+-void KWPart::setupViewInstance(KWDocument *document, KWView *view)
++void KWPart::setupViewInstance(KoDocument *document, KWView *view)
+ {
+-    connect(document, &KWDocument::shapeAdded,
+-            view->canvasBase()->shapeManager(), &KoShapeManager::addShape);
+-    connect(document, &KWDocument::shapeRemoved,
+-            view->canvasBase()->shapeManager(), &KoShapeManager::remove);
+-    connect(document, &KWDocument::resourceChanged,
+-            view->canvasBase()->resourceManager(), QOverload<int, const QVariant&>::of(&KoCanvasResourceManager::setResource));
++    connect(document, SIGNAL(shapeAdded(KoShape*,KoShapeManager::Repaint)), view->canvasBase()->shapeManager(), SLOT(addShape(KoShape*,KoShapeManager::Repaint)));
++    connect(document, SIGNAL(shapeRemoved(KoShape*)), view->canvasBase()->shapeManager(), SLOT(remove(KoShape*)));
++    connect(document, SIGNAL(resourceChanged(int,QVariant)), view->canvasBase()->resourceManager(), SLOT(setResource(int,QVariant)));
+ 
+     bool switchToolCalled = false;
+     foreach (KWFrameSet *fs, qobject_cast<KWDocument*>(document)->frameSets()) {
+diff --git a/words/part/KWPart.h b/words/part/KWPart.h
+index d2bfc5ccb8f..78192e8f2aa 100644
+--- a/words/part/KWPart.h
++++ b/words/part/KWPart.h
+@@ -59,7 +59,7 @@ private Q_SLOTS:
+ protected:
+ 
+     KoView *createViewInstance(KoDocument *document, QWidget *parent) override; ///reimplemented
+-    virtual void setupViewInstance(KWDocument *document, KWView *view);
++    virtual void setupViewInstance(KoDocument *document, KWView *view);
+ 
+     KWDocument *m_document;
+ };
+diff --git a/words/part/KWStatusBar.cpp b/words/part/KWStatusBar.cpp
+index 5dec486b458..f7f6bbda430 100644
+--- a/words/part/KWStatusBar.cpp
++++ b/words/part/KWStatusBar.cpp
+@@ -131,7 +131,7 @@ KWStatusBar::KWStatusBar(QStatusBar *statusBar, KWView *view)
+     m_pageLabel->setFixedWidth(QFontMetrics(m_pageLabel->m_label->font()).width(i18nPageRange.subs("9999").subs("9999").subs("9999").toString()));
+     m_statusbar->addWidget(m_pageLabel);
+     m_pageLabel->setVisible(document->config().statusBarShowPage());
+-    connect(m_pageLabel->m_edit, &QLineEdit::returnPressed, this, [this]() { gotoPage(); });
++    connect(m_pageLabel->m_edit, SIGNAL(returnPressed()), this, SLOT(gotoPage()));
+     connect(document, &KWDocument::pageSetupChanged, this, &KWStatusBar::updatePageCount);
+ 
+     QAction *action = new QAction(i18n("Page Number"), this);
+@@ -160,7 +160,7 @@ KWStatusBar::KWStatusBar(QStatusBar *statusBar, KWView *view)
+     m_pageStyleLabel->m_button->setMinimumHeight(psfm.height());
+     m_pageStyleLabel->m_label->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
+     m_statusbar->addWidget(m_pageStyleLabel);
+-    connect(m_pageStyleLabel->m_button, &QToolButton::clicked, this, [this]() { showPageStyle(); });
++    connect(m_pageStyleLabel->m_button, SIGNAL(clicked()), this, SLOT(showPageStyle()));
+     connect(document, &KWDocument::pageSetupChanged, this, &KWStatusBar::updatePageStyle);
+     m_pageStyleLabel->setVisible(document->config().statusBarShowPageStyle());
+ 
+@@ -169,7 +169,7 @@ KWStatusBar::KWStatusBar(QStatusBar *statusBar, KWView *view)
+     action->setCheckable(true);
+     action->setChecked(document->config().statusBarShowPageStyle());
+     m_statusbar->addAction(action);
+-    connect(action, &QAction::toggled, this, QOverload<bool>::of(&KWStatusBar::showPageStyle));
++    connect(action, SIGNAL(toggled(bool)), this, SLOT(showPageStyle(bool)));
+ 
+     m_pageSizeLabel = new QLabel();
+     m_pageSizeLabel->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
+diff --git a/words/part/KWView.cpp b/words/part/KWView.cpp
+index 37805b0bfcb..874232895ca 100644
+--- a/words/part/KWView.cpp
++++ b/words/part/KWView.cpp
+@@ -158,7 +158,7 @@ KWView::KWView(KoPart *part, KWDocument *document, QWidget *parent)
+     KoFindToolbar *toolbar = new KoFindToolbar(m_find, actionCollection(), this);
+     toolbar->setVisible(false);
+     connect(m_find, &KoFindBase::matchFound, this, &KWView::findMatchFound);
+-    connect(m_find, &KoFindText::updateCanvas, m_canvas, QOverload<>::of(&KWCanvas::update));
++    connect(m_find, SIGNAL(updateCanvas()), m_canvas, SLOT(update()));
+     // The text documents to search in will potentially change when we add/remove shapes and after load
+     connect(m_document, &KWDocument::shapeAdded, this, &KWView::refreshFindTexts);
+     connect(m_document, &KWDocument::shapeRemoved, this, &KWView::refreshFindTexts);
+@@ -184,7 +184,7 @@ KWView::KWView(KoPart *part, KWDocument *document, QWidget *parent)
+     if (m_canvas->viewMode()->hasPages())
+         modes |= KoZoomMode::ZOOM_PAGE;
+     m_zoomController->zoomAction()->setZoomModes(modes);
+-    connect(m_canvas, &KWCanvas::documentSize, m_zoomController, [this](const QSizeF &sz) { m_zoomController->setDocumentSize(sz); });
++    connect(m_canvas, SIGNAL(documentSize(QSizeF)), m_zoomController, SLOT(setDocumentSize(QSizeF)));
+     m_canvas->updateSize(); // to emit the doc size at least once
+     m_zoomController->setZoom(m_document->config().zoomMode(), m_document->config().zoom() / 100.);
+     connect(m_zoomController, &KoZoomController::zoomChanged, this, &KWView::zoomChanged);
+@@ -210,7 +210,7 @@ KWView::~KWView()
+ {
+     KoToolManager::instance()->removeCanvasController(m_gui->canvasController());
+ 
+-    m_canvas = nullptr;
++    m_canvas = 0;
+ }
+ 
+ KoCanvasBase *KWView::canvasBase() const
+diff --git a/words/part/dialogs/KWAnchoringProperties.cpp b/words/part/dialogs/KWAnchoringProperties.cpp
+index 2e4de1cbc47..bfddb3a03f5 100644
+--- a/words/part/dialogs/KWAnchoringProperties.cpp
++++ b/words/part/dialogs/KWAnchoringProperties.cpp
+@@ -118,7 +118,7 @@ KWAnchoringProperties::KWAnchoringProperties(FrameConfigSharedState *state)
+     m_anchorTypeGroup->setId(widget.rAnchorParagraph, KoShapeAnchor::AnchorParagraph);
+     m_anchorTypeGroup->addButton(widget.rAnchorPage);
+     m_anchorTypeGroup->setId(widget.rAnchorPage, KoShapeAnchor::AnchorPage);
+-    connect(m_anchorTypeGroup, QOverload<int>::of(&QButtonGroup::buttonClicked), this, &KWAnchoringProperties::anchorTypeChanged);
++    connect(m_anchorTypeGroup, SIGNAL(buttonClicked(int)), this, SLOT(anchorTypeChanged(int)));
+ 
+     m_vertPosGroup = new QButtonGroup();
+     m_vertPosGroup->addButton(widget.rTop);
+@@ -129,7 +129,7 @@ KWAnchoringProperties::KWAnchoringProperties(FrameConfigSharedState *state)
+     m_vertPosGroup->setId(widget.rBottom, KoShapeAnchor::VBottom);
+     m_vertPosGroup->addButton(widget.rVOffset);
+     m_vertPosGroup->setId(widget.rVOffset, KoShapeAnchor::VFromTop);
+-    connect(m_vertPosGroup, QOverload<int>::of(&QButtonGroup::buttonClicked), this, [this](int i) { vertPosChanged(i); });
++    connect(m_vertPosGroup, SIGNAL(buttonClicked(int)), this, SLOT(vertPosChanged(int)));
+ 
+     m_horizPosGroup = new QButtonGroup();
+     m_horizPosGroup->addButton(widget.rLeft);
+@@ -140,17 +140,17 @@ KWAnchoringProperties::KWAnchoringProperties(FrameConfigSharedState *state)
+     m_horizPosGroup->setId(widget.rRight, KoShapeAnchor::HRight);
+     m_horizPosGroup->addButton(widget.rHOffset);
+     m_horizPosGroup->setId(widget.rHOffset, KoShapeAnchor::HFromLeft);
+-    connect(m_horizPosGroup, QOverload<int>::of(&QButtonGroup::buttonClicked), this, [this](int i) { horizPosChanged(i); });
++    connect(m_horizPosGroup, SIGNAL(buttonClicked(int)), this, SLOT(horizPosChanged(int)));
+ 
+-    connect(widget.cTopArea, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &KWAnchoringProperties::vertRelChanged);
+-    connect(widget.cVCenterArea, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &KWAnchoringProperties::vertRelChanged);
+-    connect(widget.cBottomArea, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &KWAnchoringProperties::vertRelChanged);
+-    connect(widget.cVOffsetArea, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &KWAnchoringProperties::vertRelChanged);
++    connect(widget.cTopArea, SIGNAL(currentIndexChanged(int)), this, SLOT(vertRelChanged(int)));
++    connect(widget.cVCenterArea, SIGNAL(currentIndexChanged(int)), this, SLOT(vertRelChanged(int)));
++    connect(widget.cBottomArea, SIGNAL(currentIndexChanged(int)), this, SLOT(vertRelChanged(int)));
++    connect(widget.cVOffsetArea, SIGNAL(currentIndexChanged(int)), this, SLOT(vertRelChanged(int)));
+ 
+-    connect(widget.cLeftArea, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &KWAnchoringProperties::horizRelChanged);
+-    connect(widget.cHCenterArea, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &KWAnchoringProperties::horizRelChanged);
+-    connect(widget.cRightArea, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &KWAnchoringProperties::horizRelChanged);
+-    connect(widget.cHOffsetArea, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &KWAnchoringProperties::horizRelChanged);
++    connect(widget.cLeftArea, SIGNAL(currentIndexChanged(int)), this, SLOT(horizRelChanged(int)));
++    connect(widget.cHCenterArea, SIGNAL(currentIndexChanged(int)), this, SLOT(horizRelChanged(int)));
++    connect(widget.cRightArea, SIGNAL(currentIndexChanged(int)), this, SLOT(horizRelChanged(int)));
++    connect(widget.cHOffsetArea, SIGNAL(currentIndexChanged(int)), this, SLOT(horizRelChanged(int)));
+ }
+ 
+ bool KWAnchoringProperties::open(const QList<KoShape *> &shapes)
+diff --git a/words/part/dialogs/KWDocumentColumns.cpp b/words/part/dialogs/KWDocumentColumns.cpp
+index 92ecff778f0..4650dad14d7 100644
+--- a/words/part/dialogs/KWDocumentColumns.cpp
++++ b/words/part/dialogs/KWDocumentColumns.cpp
+@@ -38,7 +38,7 @@ KWDocumentColumns::KWDocumentColumns(QWidget *parent, const KoColumns &columns)
+     layout->addWidget(m_preview);
+     m_preview->setColumns(columns);
+ 
+-    connect(widget.columns, QOverload<int>::of(&QSpinBox::valueChanged), this, &KWDocumentColumns::optionsChanged);
++    connect(widget.columns, SIGNAL(valueChanged(int)), this, SLOT(optionsChanged()));
+     connect(widget.spacing, &KoUnitDoubleSpinBox::valueChangedPt, this, &KWDocumentColumns::optionsChanged);
+     connect(this, &KWDocumentColumns::columnsChanged, m_preview, &KoPagePreviewWidget::setColumns);
+ }
+diff --git a/words/part/dialogs/KWStartupWidget.cpp b/words/part/dialogs/KWStartupWidget.cpp
+index 16236303b64..f7bd2a1236a 100644
+--- a/words/part/dialogs/KWStartupWidget.cpp
++++ b/words/part/dialogs/KWStartupWidget.cpp
+@@ -61,7 +61,7 @@ KWStartupWidget::KWStartupWidget(QWidget *parent, KWDocument *doc, const KoColum
+ 
+     connect(m_sizeWidget, &KoPageLayoutWidget::layoutChanged, this, &KWStartupWidget::sizeUpdated);
+     connect(widget.createButton, &QAbstractButton::clicked, this, &KWStartupWidget::buttonClicked);
+-    connect(m_sizeWidget, &KoPageLayoutWidget::unitChanged, this, &KWStartupWidget::unitChanged);
++    connect(m_sizeWidget, SIGNAL(unitChanged(KoUnit)), this, SLOT(unitChanged(KoUnit)));
+     connect(m_columnsWidget, &KWDocumentColumns::columnsChanged, prev, &KoPagePreviewWidget::setColumns);
+     connect(m_columnsWidget, &KWDocumentColumns::columnsChanged, this, &KWStartupWidget::columnsUpdated);
+     connect(m_sizeWidget, &KoPageLayoutWidget::layoutChanged, prev, &KoPagePreviewWidget::setPageLayout);
+diff --git a/words/plugins/scripting/Tool.h b/words/plugins/scripting/Tool.h
+index b0c9d11df35..05842e89127 100644
+--- a/words/plugins/scripting/Tool.h
++++ b/words/plugins/scripting/Tool.h
+@@ -70,7 +70,7 @@ public:
+             connect(it.value(), &QAction::triggered, this, [this, key] { actionTriggered(key); });
+         }
+ 
+-        connect(KoToolManager::instance(), &KoToolManager::changedTool, this, [this]() { emit changedTool(); });
++        connect(KoToolManager::instance(), SIGNAL(changedTool(KoCanvasController*,int)), this, SIGNAL(changedTool()));
+     }
+     virtual ~Tool() {}
+ 
+-- 
+2.29.2
+

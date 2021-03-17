@@ -1,0 +1,64 @@
+From fc7c77aaf37b254fda1dea7b6bc27e8a56c5be2a Mon Sep 17 00:00:00 2001
+From: Damien Caliste <dcaliste@free.fr>
+Date: Tue, 11 Dec 2018 13:21:35 +0100
+Subject: [PATCH] Disable various dependencies in plugins.
+
+---
+ plugins/pictureshape/PictureShapeConfigWidget.cpp | 2 ++
+ plugins/textshape/TextTool.cpp                    | 6 ++++++
+ 2 files changed, 8 insertions(+)
+
+diff --git a/plugins/pictureshape/PictureShapeConfigWidget.cpp b/plugins/pictureshape/PictureShapeConfigWidget.cpp
+index 876e01b894d..02db6506dd4 100644
+--- a/plugins/pictureshape/PictureShapeConfigWidget.cpp
++++ b/plugins/pictureshape/PictureShapeConfigWidget.cpp
+@@ -98,7 +98,9 @@ void PictureShapeConfigWidget::open(KoShape *shape)
+     m_fileWidget->setMimeFilter(imageFilters);
+     layout->addWidget(m_fileWidget);
+     setLayout(layout);
++#ifdef HAVE_KFILEWIDGETS
+     connect(m_fileWidget, &KFileWidget::accepted, this, &PictureShapeConfigWidget::slotAccept);
++#endif
+ }
+ 
+ // The page dialog's own accept() is called by the OK button
+diff --git a/plugins/textshape/TextTool.cpp b/plugins/textshape/TextTool.cpp
+index 864593383f5..8bea8436b9b 100644
+--- a/plugins/textshape/TextTool.cpp
++++ b/plugins/textshape/TextTool.cpp
+@@ -76,8 +76,10 @@
+ //#include <ResizeTableCommand.h>
+ #include <KoIcon.h>
+ 
++#ifdef HAVE_KRUN
+ #include <krun.h>
+ #include <kstandardshortcut.h>
++#endif
+ #include <kactionmenu.h>
+ #include <kstandardaction.h>
+ #include <ksharedconfig.h>
+@@ -2912,6 +2914,7 @@ void TextTool::runUrl(KoPointerEvent *event, QString &url)
+         QMimeDatabase db;
+         QString type = db.mimeTypeForUrl(_url).name();
+ 
++#ifdef HAVE_KRUN
+         if (KRun::isExecutableFile(_url, type)) {
+             QString question = i18n("This link points to the program or script '%1'.\n"
+                                     "Malicious programs can harm your computer. "
+@@ -2922,10 +2925,13 @@ void TextTool::runUrl(KoPointerEvent *event, QString &url)
+             if (choice != KMessageBox::Yes)
+                 return;
+         }
++#endif
+     }
+ 
+     event->accept();
++#ifdef HAVE_KRUN
+     new KRun(_url, 0);
++#endif
+ }
+ 
+ void TextTool::debugTextDocument()
+-- 
+2.29.2
+

@@ -1,7 +1,7 @@
-From 98883f9c06e84d22cc80e64bf909b9d1c92dc171 Mon Sep 17 00:00:00 2001
+From a259b35ab71ffafef157b0631135b099aadf19a1 Mon Sep 17 00:00:00 2001
 From: Mikhail Philippov <m.filippov@omprussia.ru>
 Date: Thu, 31 Oct 2019 12:27:33 +0300
-Subject: [PATCH 14/14] Handle CSV files
+Subject: [PATCH] Handle CSV files
 
 ---
  filters/sheets/csv/CMakeLists.txt |   7 +-
@@ -39,7 +39,7 @@ index 8034b51f2ff..ab1fae8f98a 100644
  install(TARGETS calligra_filter_csv2sheets DESTINATION ${PLUGIN_INSTALL_DIR}/calligra/formatfilters)
  
 diff --git a/filters/sheets/csv/csvimport.cc b/filters/sheets/csv/csvimport.cc
-index 89fb7162e00..b1da155c34a 100644
+index 1008d186f18..82f7e19ebed 100644
 --- a/filters/sheets/csv/csvimport.cc
 +++ b/filters/sheets/csv/csvimport.cc
 @@ -30,8 +30,11 @@
@@ -644,5 +644,5 @@ index 00000000000..062b3422dcd
 +
 +#endif // CSVPARSER_H
 -- 
-2.23.0
+2.29.2
 

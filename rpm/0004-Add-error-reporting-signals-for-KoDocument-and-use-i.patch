@@ -1,8 +1,8 @@
-From e239414509c50c57ba6a40a5f1ea2643ac6e50ec Mon Sep 17 00:00:00 2001
+From efa6d8035dd01e7f7f7d1c11365f8981c30428a5 Mon Sep 17 00:00:00 2001
 From: Pekka Vuorela <pekka.vuorela@jolla.com>
 Date: Thu, 23 May 2019 11:13:41 +0300
-Subject: [PATCH 07/14] Add error reporting signals for KoDocument and use it
- in components
+Subject: [PATCH] Add error reporting signals for KoDocument and use it in
+ components
 
 ---
  components/Document.cpp              | 16 +++++++++++++
@@ -16,7 +16,7 @@ Subject: [PATCH 07/14] Add error reporting signals for KoDocument and use it
  8 files changed, 58 insertions(+), 10 deletions(-)
 
 diff --git a/components/Document.cpp b/components/Document.cpp
-index 90b34609854..6a9356c64c4 100644
+index 6d4664c0a89..fa11713aede 100644
 --- a/components/Document.cpp
 +++ b/components/Document.cpp
 @@ -54,6 +54,7 @@ public:
@@ -120,7 +120,7 @@ index 3ca29fb24c2..8e896946a91 100644
      d->part->setDocument(d->document);
  
 diff --git a/components/impl/SpreadsheetImpl.cpp b/components/impl/SpreadsheetImpl.cpp
-index 0ab71e1e8d2..9a8d4232353 100644
+index e15f929c573..d1895cdd6b5 100644
 --- a/components/impl/SpreadsheetImpl.cpp
 +++ b/components/impl/SpreadsheetImpl.cpp
 @@ -168,6 +168,8 @@ bool SpreadsheetImpl::load(const QUrl& url)
@@ -133,7 +133,7 @@ index 0ab71e1e8d2..9a8d4232353 100644
  
      bool retval = d->document->openUrl(url);
 diff --git a/components/impl/TextDocumentImpl.cpp b/components/impl/TextDocumentImpl.cpp
-index 63cd5a9b03a..c558d500788 100644
+index 60718286720..ddebcea68ba 100644
 --- a/components/impl/TextDocumentImpl.cpp
 +++ b/components/impl/TextDocumentImpl.cpp
 @@ -182,6 +182,8 @@ bool TextDocumentImpl::load(const QUrl& url)
@@ -146,10 +146,10 @@ index 63cd5a9b03a..c558d500788 100644
      d->part->setDocument(d->document);
  
 diff --git a/libs/main/KoDocument.cpp b/libs/main/KoDocument.cpp
-index 8ab1ca289d0..c7740fdf786 100644
+index 62652806824..ee4d9a168e9 100644
 --- a/libs/main/KoDocument.cpp
 +++ b/libs/main/KoDocument.cpp
-@@ -160,7 +160,7 @@ public:
+@@ -158,7 +158,7 @@ public:
          modifiedAfterAutosave(false),
          autosaving(false),
          shouldCheckAutoSaveFile(true),
@@ -160,7 +160,7 @@ index 8ab1ca289d0..c7740fdf786 100644
          doNotSaveExtDoc(false),
 @@ -464,6 +464,7 @@ KoDocument::KoDocument(KoPart *parent, KUndo2Stack *undoStack)
  
-     connect(d->undoStack, SIGNAL(indexChanged(int)), this, SLOT(slotUndoStackIndexChanged(int)));
+     connect(d->undoStack, &KUndo2QStack::indexChanged, this, &KoDocument::slotUndoStackIndexChanged);
  
 +    setAutoErrorHandlingEnabled(true);
  }
@@ -178,7 +178,7 @@ index 8ab1ca289d0..c7740fdf786 100644
              }
  
          }
-@@ -704,7 +705,16 @@ void KoDocument::setCheckAutoSaveFile(bool b)
+@@ -702,7 +703,16 @@ void KoDocument::setCheckAutoSaveFile(bool b)
  
  void KoDocument::setAutoErrorHandlingEnabled(bool b)
  {
@@ -232,7 +232,7 @@ index 8ab1ca289d0..c7740fdf786 100644
              }
          }
      }
-@@ -2359,6 +2370,11 @@ void KoDocument::slotUndoStackIndexChanged(int idx)
+@@ -2347,6 +2358,11 @@ void KoDocument::slotUndoStackIndexChanged(int idx)
      setModified(idx != d->undoStack->cleanIndex());
  }
  
@@ -266,5 +266,5 @@ index 1af2193d9fd..f2b04ddda42 100644
      bool oldLoadAndParse(KoStore *store, const QString& filename, KoXmlDocument& doc);
  private:
 -- 
-2.24.1
+2.29.2
 

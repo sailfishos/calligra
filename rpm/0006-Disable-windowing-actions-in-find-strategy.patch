@@ -1,7 +1,7 @@
-From 555fcf6ce7194892a7125fe309435b691e14f190 Mon Sep 17 00:00:00 2001
+From 67ffa3428bcd369e84b276ea161f56d3dfdd249b Mon Sep 17 00:00:00 2001
 From: Damien Caliste <dcaliste@free.fr>
 Date: Tue, 11 Dec 2018 13:13:11 +0100
-Subject: [PATCH 03/14] Disable windowing actions in find strategy.
+Subject: [PATCH] Disable windowing actions in find strategy.
 
 ---
  libs/text/FindDirection_p.cpp |  4 +--
@@ -57,7 +57,7 @@ index 21513b7ec20..8a48a923726 100644
  }
  
 diff --git a/libs/text/KoFind_p.cpp b/libs/text/KoFind_p.cpp
-index d6cdd891817..965314f19ee 100644
+index ee46e8c0616..3123eb747e2 100644
 --- a/libs/text/KoFind_p.cpp
 +++ b/libs/text/KoFind_p.cpp
 @@ -23,9 +23,11 @@
@@ -164,7 +164,7 @@ index d6cdd891817..965314f19ee 100644
      parseSettingsAndFind();
  
 +#ifdef HAVE_ACTION
-     QTimer::singleShot(0, findStrategy.dialog(), SLOT(show())); // show the findDialog again.
+     QTimer::singleShot(0, findStrategy.dialog(), &QWidget::show); // show the findDialog again.
 +#endif
  }
  
@@ -297,5 +297,5 @@ index d757099d889..cf22224eef6 100644
      QTextDocument *document;
      QTextDocument *startDocument;
 -- 
-2.23.0
+2.29.2
 

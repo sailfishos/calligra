@@ -1,7 +1,7 @@
-From 1fe3254084ca02849d42a659cab7b0dce70a99c5 Mon Sep 17 00:00:00 2001
+From 48008ff84708b93dd125cd59c24bfa587646dd4e Mon Sep 17 00:00:00 2001
 From: Damien Caliste <dcaliste@free.fr>
 Date: Tue, 11 Dec 2018 13:27:04 +0100
-Subject: [PATCH 11/14] Disable various dependencies on DBus.
+Subject: [PATCH] Disable various dependencies on DBus.
 
 ---
  libs/main/KoApplication.cpp | 12 ++++++------
@@ -10,7 +10,7 @@ Subject: [PATCH 11/14] Disable various dependencies on DBus.
  3 files changed, 29 insertions(+), 29 deletions(-)
 
 diff --git a/libs/main/KoApplication.cpp b/libs/main/KoApplication.cpp
-index cea05f88796..e2af716dc9f 100644
+index d0b3c92720e..d12e20c588d 100644
 --- a/libs/main/KoApplication.cpp
 +++ b/libs/main/KoApplication.cpp
 @@ -52,7 +52,7 @@
@@ -41,7 +41,7 @@ index cea05f88796..e2af716dc9f 100644
  #ifdef Q_OS_MACX
      if ( QSysInfo::MacintoshVersion > QSysInfo::MV_10_8 )
 diff --git a/libs/main/KoDocument.cpp b/libs/main/KoDocument.cpp
-index c7740fdf786..48011060517 100644
+index 8318175d9ab..cdf339e2a91 100644
 --- a/libs/main/KoDocument.cpp
 +++ b/libs/main/KoDocument.cpp
 @@ -71,10 +71,10 @@
@@ -65,20 +65,20 @@ index c7740fdf786..48011060517 100644
          m_job = KIO::file_copy(m_url, destURL, 0600, flags);
 -#ifndef QT_NO_DBUS
 -        KJobWidgets::setWindow(m_job, 0);
--        if (m_job->ui()) {
+-        if (m_job->uiDelegate()) {
 -            KJobWidgets::setWindow(m_job, parentPart->currentMainwindow());
 -        }
 -#endif
 +// #ifndef QT_NO_DBUS
 +//         KJobWidgets::setWindow(m_job, 0);
-+//         if (m_job->ui()) {
++//         if (m_job->uiDelegate()) {
 +//             KJobWidgets::setWindow(m_job, parentPart->currentMainwindow());
 +//         }
 +// #endif
-         QObject::connect(m_job, SIGNAL(result(KJob*)), document, SLOT(_k_slotJobFinished(KJob*)));
-         QObject::connect(m_job, SIGNAL(mimetype(KIO::Job*,QString)), document, SLOT(_k_slotGotMimeType(KIO::Job*,QString)));
-     }
-@@ -2658,9 +2658,9 @@ bool KoDocument::saveToUrl()
+         QObject::connect(m_job, &KIO::FileCopyJob::result,
+                          document, [this](KJob* job) { _k_slotJobFinished(job); });
+         QObject::connect(m_job, &KIO::FileCopyJob::mimetype,
+@@ -2654,9 +2654,9 @@ bool KoDocument::saveToUrl()
              return false;
          }
          d->m_uploadJob = KIO::file_move( uploadUrl, d->m_url, -1, KIO::Overwrite );
@@ -88,11 +88,11 @@ index c7740fdf786..48011060517 100644
 +// #ifndef QT_NO_DBUS
 +//         KJobWidgets::setWindow(d->m_uploadJob, 0);
 +// #endif
-         connect( d->m_uploadJob, SIGNAL(result(KJob*)), this, SLOT(_k_slotUploadFinished(KJob*)) );
+         connect( d->m_uploadJob, &KIO::FileCopyJob::result, this, [this](KJob *job) { d->_k_slotUploadFinished(job); });
          return true;
      }
 diff --git a/sheets/part/View.cpp b/sheets/part/View.cpp
-index 02e43b81b48..c89bd409a4d 100644
+index 88db4ceadc4..80faf7b5731 100644
 --- a/sheets/part/View.cpp
 +++ b/sheets/part/View.cpp
 @@ -149,10 +149,10 @@
@@ -122,8 +122,8 @@ index 02e43b81b48..c89bd409a4d 100644
 +// #endif
  
      d->scrollTimer = new QTimer(this);
-     connect(d->scrollTimer, SIGNAL(timeout()), this, SLOT(slotAutoScroll()));
-@@ -1597,9 +1597,9 @@ void View::showTabBar(bool enable)
+     connect(d->scrollTimer, &QTimer::timeout, this, &View::slotAutoScroll);
+@@ -1607,9 +1607,9 @@ void View::showTabBar(bool enable)
  
  void View::optionsNotifications()
  {  
@@ -137,5 +137,5 @@ index 02e43b81b48..c89bd409a4d 100644
  
  void View::preference()
 -- 
-2.23.0
+2.29.2
 

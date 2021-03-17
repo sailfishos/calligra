@@ -1,5 +1,5 @@
 Name:           calligra
-Version:        3.1.0+git18
+Version:        3.2.1+git1
 Release:        1
 Summary:        Calligra suite
 License:        GPLv2
@@ -23,25 +23,24 @@ Patch4: kxmlgui-no-textwidgets.patch
 Patch5: kxmlgui-disable_startup_functions.patch
 Patch6: k18n-disable-q_coreapp_startup_function.patch
 Patch7: kdiagram-build-qreal-float.patch
-Patch8: calligra-fake-kde4libs.patch
-Patch9: calligra-stage.patch
 
-# to be arrange for later upstream
-Patch10: calligra-find.patch
-Patch11: calligra-buildsystem.patch
-Patch12: calligra-libs.patch
-Patch13: calligra-plugins.patch
-Patch14: calligra-error-reporting.patch
-Patch15: calligra-sheets.patch
-# to be removed after Qt upgrade
-Patch16: calligra-sheets-read-time.patch
-Patch17: calligra-cache.patch
-Patch18: calligra-qtdbus.patch
-Patch19: calligra-background.patch
-Patch20: calligra-invalidate-cache.patch
-
-Patch21: calligra-sheets-csvimport.patch
-Patch22: calligra-sheets-optimise.patch
+Patch8: 0001-Reenable-transparent-background.patch
+Patch9: 0002-Disable-various-dependencies-in-build-system.patch
+Patch10: 0003-Enable-page-caching-to-improve-performences.patch
+Patch11: 0004-Add-error-reporting-signals-for-KoDocument-and-use-i.patch
+Patch12: 0005-Add-fake-kde4libs-headers.patch
+Patch13: 0006-Disable-windowing-actions-in-find-strategy.patch
+Patch14: 0007-Update-the-document-cache-when-an-image-is-reloaded.patch
+Patch15: 0008-Disable-various-dependencies-in-libs.patch
+Patch16: 0009-Disable-various-dependencies-in-plugins.patch
+Patch17: 0010-Disable-various-dependencies-on-DBus.patch
+Patch18: 0011-Handle-CSV-files.patch
+Patch19: 0012-Add-optimisations-for-importing-readonly-XLSX-docs.patch
+Patch20: 0013-Disable-various-dependencies-in-sheets.patch
+Patch21: 0014-Work-around-QLocale-.timeFormat-.simplified-seg-faul.patch
+Patch22: 0015-Don-t-export-HTML-in-stage.patch
+Patch23: 0016-Adjust-for-old-Qt-version.patch
+Patch24: 0017-Revert-Another-group-of-old-style-connects-migrated-.patch
 
 %description
 %{summary}.
@@ -192,6 +191,8 @@ BuildRequires:  extra-cmake-modules >= 5.34.0
 %patch20 -d upstream -p1
 %patch21 -d upstream -p1
 %patch22 -d upstream -p1
+%patch23 -d upstream -p1
+%patch24 -d upstream -p1
 
 %define build_kf5() cd %1 ; if [ ! -d build ] ; then mkdir build ; fi ; cd build ; if [ ! -e Makefile ] ; then CMAKE_PREFIX_PATH=%{_buildrootdir}/kf5/usr cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_RPATH=%{_libdir}/calligra-kf5 -DBUILD_TESTING=OFF %{?2} .. ; fi ; make %{?_smp_mflags} install DESTDIR=%{_buildrootdir}/kf5 ; cd ../.. ;
 %build
@@ -211,7 +212,7 @@ BuildRequires:  extra-cmake-modules >= 5.34.0
 %build_kf5 kxmlgui
 %build_kf5 kdiagram
 if [ ! -d upstream/build ] ; then mkdir upstream/build ; fi ; cd upstream/build
-CMAKE_PREFIX_PATH=%{_buildrootdir}/kf5/usr cmake -DCMAKE_INSTALL_PREFIX=/usr -DPRODUCTSET="PART_WORDS PART_STAGE PART_SHEETS PART_COMPONENTS FILTER_DOCX_TO_ODT FILTER_DOC_TO_ODT FILTER_RTF_TO_ODT FILTER_XLSX_TO_ODS FILTER_XLS_TO_SHEETS FILTER_PPTX_TO_ODP FILTER_PPT_TO_ODP PLUGIN_CHARTSHAPE PLUGIN_PATHSHAPES PLUGIN_VARIABLES FILTER_CSV_TO_SHEETS" -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release ..
+CMAKE_PREFIX_PATH=%{_buildrootdir}/kf5/usr cmake -DCMAKE_INSTALL_PREFIX=/usr -DPRODUCTSET="PART_WORDS PART_STAGE PART_SHEETS PART_COMPONENTS FILTER_DOCX_TO_ODT FILTER_DOC_TO_ODT FILTER_RTF_TO_ODT FILTER_XLSX_TO_ODS FILTER_XLS_TO_SHEETS FILTER_PPTX_TO_ODP FILTER_PPT_TO_ODP PLUGIN_CHARTSHAPE PLUGIN_PATHSHAPES PLUGIN_VARIABLES FILTER_CSV_TO_SHEETS APP_CONVERTER" -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release ..
 make %{?_smp_mflags}
 
 %install
@@ -231,6 +232,7 @@ if [ -d %{buildroot}%{_libdir}/plugins/calligrastage ] ; then mv %{buildroot}%{_
 
 %files
 %defattr(-,root,root,-)
+%{_bindir}/calligraconverter
 
 %files components
 %defattr(-,root,root,-)
@@ -300,7 +302,7 @@ if [ -d %{buildroot}%{_libdir}/plugins/calligrastage ] ; then mv %{buildroot}%{_
 %dir %{_libdir}/qt5/plugins/calligra/shapes
 %{_libdir}/qt5/plugins/calligra/shapes/calligra_shape_text.so
 %{_libdir}/qt5/plugins/calligra/shapes/calligra_shape_picture.so
-%{_libdir}/qt5/plugins/calligra/shapes/calligra_shape_chart.so
+%{_libdir}/qt5/plugins/calligra/shapes/calligra_shape_spreadsheet.so
 %{_libdir}/qt5/plugins/calligra/shapes/calligra_shape_paths.so
 
 %files words-core
