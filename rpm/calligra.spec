@@ -41,6 +41,7 @@ Patch21: 0014-Work-around-QLocale-.timeFormat-.simplified-seg-faul.patch
 Patch22: 0015-Don-t-export-HTML-in-stage.patch
 Patch23: 0016-Adjust-for-old-Qt-version.patch
 Patch24: 0017-Revert-Another-group-of-old-style-connects-migrated-.patch
+Patch25: 0018-Use-the-camel-case-variable-names-for-Fontconfig.patch
 
 %description
 %{summary}.
@@ -193,6 +194,7 @@ BuildRequires:  extra-cmake-modules >= 5.34.0
 %patch22 -d upstream -p1
 %patch23 -d upstream -p1
 %patch24 -d upstream -p1
+%patch25 -d upstream -p1
 
 %define build_kf5() cd %1 ; if [ ! -d build ] ; then mkdir build ; fi ; cd build ; if [ ! -e Makefile ] ; then CMAKE_PREFIX_PATH=%{_buildrootdir}/kf5/usr cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_RPATH=%{_libdir}/calligra-kf5 -DBUILD_TESTING=OFF %{?2} .. ; fi ; make %{?_smp_mflags} install DESTDIR=%{_buildrootdir}/kf5 ; cd ../.. ;
 %build
