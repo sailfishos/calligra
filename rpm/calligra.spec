@@ -2,7 +2,7 @@ Name:           calligra
 Version:        3.2.1+git1
 Release:        1
 Summary:        Calligra suite
-License:        GPLv2
+License:        LGPLv2 and GPLv2
 Url:            http://www.kde.org/
 Source0:        %{name}-%{version}.tar.gz
 BuildRequires:  cmake
@@ -144,6 +144,7 @@ Summary: Calligra Stage templates
 
 %package kf5
 Summary:  Bundled KDE framework libraries
+License:  LGPLv2 and GPLv2
 BuildRequires:  cmake
 BuildRequires:  gettext
 BuildRequires:  pkgconfig(Qt5Core)
@@ -234,6 +235,8 @@ if [ -d %{buildroot}%{_libdir}/plugins/calligrastage ] ; then mv %{buildroot}%{_
 
 %files
 %defattr(-,root,root,-)
+# COPYING.LIB here v2 (not 2.1)
+%license upstream/COPYING upstream/COPYING.LIB
 %{_bindir}/calligraconverter
 
 %files components
@@ -420,4 +423,8 @@ if [ -d %{buildroot}%{_libdir}/plugins/calligrastage ] ; then mv %{buildroot}%{_
 
 %files kf5
 %defattr(-,root,root,-)
+# identical on all the submodules, lgpl v2.1.
+%license kcodecs/COPYING.LIB
+# kio is licensed lgpl/gpl but includes only license for former. reuse gpl from calligra
+%license upstream/COPYING
 %{_libdir}/calligra-kf5
