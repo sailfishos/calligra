@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: David Faure <faure@kde.org>
+Date: Sun, 30 Jul 2017 19:03:12 +0200
+Subject: [PATCH] GIT_SILENT remove weird character in commented out code
+
+---
+ src/lib/kaboutdata.cpp | 22 +++++++++++-----------
+ 1 file changed, 11 insertions(+), 11 deletions(-)
+
+diff --git a/src/lib/kaboutdata.cpp b/src/lib/kaboutdata.cpp
+index cacb14554f6d82289cc1bc20fdcbd82d87587be4..2b2bb977d728a5259f78fbf812bb2cf9023f03bc 100644
+--- a/src/lib/kaboutdata.cpp
++++ b/src/lib/kaboutdata.cpp
+@@ -920,19 +920,19 @@ QString KAboutData::desktopFileName() const
+     // KF6: switch to this code and adapt API dox
+ #if 0
+     // if desktopFileName has been explicitely set, use that value
+-    f (!d->desktopFileName.isEmpty()) {
+-​        return d->desktopFileName;
+-​    }
++    if (!d->desktopFileName.isEmpty()) {
++        return d->desktopFileName;
++    }
+ 
+     // return a string calculated on-the-fly from the current org domain & component name
+-​    const QChar dotChar(QLatin1Char('.'));
+-​    QStringList hostComponents = d->organizationDomain.split(dotChar);
+-​
+-​    // desktop file name is reverse domain name
+-​    std::reverse(hostComponents.begin(), hostComponents.end());
+-​    hostComponents.append(componentName());
+-​
+-​    return hostComponents.join(dotChar);
++    const QChar dotChar(QLatin1Char('.'));
++    QStringList hostComponents = d->organizationDomain.split(dotChar);
++
++    // desktop file name is reverse domain name
++    std::reverse(hostComponents.begin(), hostComponents.end());
++    hostComponents.append(componentName());
++
++    return hostComponents.join(dotChar);
+ #endif
+ }
+ 
