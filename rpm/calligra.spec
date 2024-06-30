@@ -23,25 +23,27 @@ Patch4: kxmlgui-no-textwidgets.patch
 Patch5: kxmlgui-disable_startup_functions.patch
 Patch6: k18n-disable-q_coreapp_startup_function.patch
 Patch7: kdiagram-build-qreal-float.patch
+Patch8: kcoreaddons-remove-weird-character-in-commented-out-c.patch
+Patch9: kcoreaddons-Add-missing-include.patch
 
-Patch8: 0001-Reenable-transparent-background.patch
-Patch9: 0002-Disable-various-dependencies-in-build-system.patch
-Patch10: 0003-Enable-page-caching-to-improve-performences.patch
-Patch11: 0004-Add-error-reporting-signals-for-KoDocument-and-use-i.patch
-Patch12: 0005-Add-fake-kde4libs-headers.patch
-Patch13: 0006-Disable-windowing-actions-in-find-strategy.patch
-Patch14: 0007-Update-the-document-cache-when-an-image-is-reloaded.patch
-Patch15: 0008-Disable-various-dependencies-in-libs.patch
-Patch16: 0009-Disable-various-dependencies-in-plugins.patch
-Patch17: 0010-Disable-various-dependencies-on-DBus.patch
-Patch18: 0011-Handle-CSV-files.patch
-Patch19: 0012-Add-optimisations-for-importing-readonly-XLSX-docs.patch
-Patch20: 0013-Disable-various-dependencies-in-sheets.patch
-Patch21: 0014-Work-around-QLocale-.timeFormat-.simplified-seg-faul.patch
-Patch22: 0015-Don-t-export-HTML-in-stage.patch
-Patch23: 0016-Adjust-for-old-Qt-version.patch
-Patch24: 0017-Revert-Another-group-of-old-style-connects-migrated-.patch
-Patch25: 0018-Use-the-camel-case-variable-names-for-Fontconfig.patch
+Patch101: 0001-Reenable-transparent-background.patch
+Patch102: 0002-Disable-various-dependencies-in-build-system.patch
+Patch103: 0003-Enable-page-caching-to-improve-performences.patch
+Patch104: 0004-Add-error-reporting-signals-for-KoDocument-and-use-i.patch
+Patch105: 0005-Add-fake-kde4libs-headers.patch
+Patch106: 0006-Disable-windowing-actions-in-find-strategy.patch
+Patch107: 0007-Update-the-document-cache-when-an-image-is-reloaded.patch
+Patch108: 0008-Disable-various-dependencies-in-libs.patch
+Patch109: 0009-Disable-various-dependencies-in-plugins.patch
+Patch110: 0010-Disable-various-dependencies-on-DBus.patch
+Patch111: 0011-Handle-CSV-files.patch
+Patch112: 0012-Add-optimisations-for-importing-readonly-XLSX-docs.patch
+Patch113: 0013-Disable-various-dependencies-in-sheets.patch
+Patch114: 0014-Work-around-QLocale-.timeFormat-.simplified-seg-faul.patch
+Patch115: 0015-Don-t-export-HTML-in-stage.patch
+Patch116: 0016-Adjust-for-old-Qt-version.patch
+Patch117: 0017-Revert-Another-group-of-old-style-connects-migrated-.patch
+Patch118: 0018-Use-the-camel-case-variable-names-for-Fontconfig.patch
 
 %description
 %{summary}.
@@ -178,24 +180,26 @@ BuildRequires:  extra-cmake-modules >= 5.34.0
 %patch5 -d kxmlgui -p1
 %patch6 -d ki18n -p1
 %patch7 -d kdiagram -p1
-%patch8 -d upstream -p1
-%patch9 -d upstream -p1
-%patch10 -d upstream -p1
-%patch11 -d upstream -p1
-%patch12 -d upstream -p1
-%patch13 -d upstream -p1
-%patch14 -d upstream -p1
-%patch15 -d upstream -p1
-%patch16 -d upstream -p1
-%patch17 -d upstream -p1
-%patch18 -d upstream -p1
-%patch19 -d upstream -p1
-%patch20 -d upstream -p1
-%patch21 -d upstream -p1
-%patch22 -d upstream -p1
-%patch23 -d upstream -p1
-%patch24 -d upstream -p1
-%patch25 -d upstream -p1
+%patch8 -d kcoreaddons -p1
+%patch9 -d kcoreaddons -p1
+%patch101 -d upstream -p1
+%patch102 -d upstream -p1
+%patch103 -d upstream -p1
+%patch104 -d upstream -p1
+%patch105 -d upstream -p1
+%patch106 -d upstream -p1
+%patch107 -d upstream -p1
+%patch108 -d upstream -p1
+%patch109 -d upstream -p1
+%patch110 -d upstream -p1
+%patch111 -d upstream -p1
+%patch112 -d upstream -p1
+%patch113 -d upstream -p1
+%patch114 -d upstream -p1
+%patch115 -d upstream -p1
+%patch116 -d upstream -p1
+%patch117 -d upstream -p1
+%patch118 -d upstream -p1
 
 %define build_kf5() cd %1 ; if [ ! -d build ] ; then mkdir build ; fi ; cd build ; if [ ! -e Makefile ] ; then CMAKE_PREFIX_PATH=%{_buildrootdir}/kf5/usr cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_RPATH=%{_libdir}/calligra-kf5 -DBUILD_TESTING=OFF %{?2} .. ; fi ; make %{?_smp_mflags} install DESTDIR=%{_buildrootdir}/kf5 ; cd ../.. ;
 %build
@@ -234,17 +238,14 @@ if [ -d %{buildroot}%{_libdir}/plugins/calligrastage ] ; then mv %{buildroot}%{_
 %postun -p /sbin/ldconfig
 
 %files
-%defattr(-,root,root,-)
 # COPYING.LIB here v2 (not 2.1)
 %license upstream/COPYING upstream/COPYING.LIB
 %{_bindir}/calligraconverter
 
 %files components
-%defattr(-,root,root,-)
 %{_libdir}/qt5/qml/org/kde/calligra
 
 %files data
-%defattr(-,root,root,-)
 %dir %{_datadir}/calligra
 %{_datadir}/calligra/calligra_shell.rc
 %{_datadir}/calligra/cursors
@@ -255,7 +256,6 @@ if [ -d %{buildroot}%{_libdir}/plugins/calligrastage ] ; then mv %{buildroot}%{_
 %{_datadir}/icons/*
 
 %files filters
-%defattr(-,root,root,-)
 %{_libdir}/qt5/plugins/calligra/formatfilters
 %{_libdir}/libkomsooxml.so.*
 %{_libdir}/libkoodf2.so.*
@@ -267,7 +267,6 @@ if [ -d %{buildroot}%{_libdir}/plugins/calligrastage ] ; then mv %{buildroot}%{_
 %exclude %{_libdir}/libkowv2.so
 
 %files libs
-%defattr(-,root,root,-)
 %{_libdir}/libbasicflakes.so.*
 %{_libdir}/libflake.so.*
 %{_libdir}/libkomain.so.*
@@ -298,7 +297,6 @@ if [ -d %{buildroot}%{_libdir}/plugins/calligrastage ] ; then mv %{buildroot}%{_
 %exclude %{_libdir}/libkoversion.so
 
 %files plugins
-%defattr(-,root,root,-)
 %dir %{_libdir}/qt5/plugins/calligra
 %dir %{_libdir}/qt5/plugins/calligra/parts
 %{_libdir}/qt5/plugins/calligra/pageapptools
@@ -311,7 +309,6 @@ if [ -d %{buildroot}%{_libdir}/plugins/calligrastage ] ; then mv %{buildroot}%{_
 %{_libdir}/qt5/plugins/calligra/shapes/calligra_shape_paths.so
 
 %files words-core
-%defattr(-,root,root,-)
 %{_libdir}/libwordsprivate.so.*
 %{_libdir}/qt5/plugins/calligra/parts/calligrawordspart.so
 %dir %{_datadir}/calligrawords
@@ -335,14 +332,12 @@ if [ -d %{buildroot}%{_libdir}/plugins/calligrastage ] ; then mv %{buildroot}%{_
 %exclude %{_libdir}/libwordsprivate.so
 
 %files words-templates
-%defattr(-,root,root,-)
 %{_datadir}/calligrawords/templates
 %{_datadir}/calligrawords/icons/hicolor/scalable/actions/template_*.svgz
 %{_datadir}/calligrawords/icons/hicolor/48x48/actions/template_*.png
 %{_datadir}/calligrawords/icons/hicolor/128x128/actions/template_*.png
 
 %files sheets-core
-%defattr(-,root,root,-)
 %{_libdir}/libcalligrasheetsodf.so.*
 %{_libdir}/libcalligrasheetscommon.so.*
 %{_libdir}/qt5/plugins/calligra/parts/calligrasheetspart.so
@@ -377,13 +372,11 @@ if [ -d %{buildroot}%{_libdir}/plugins/calligrastage ] ; then mv %{buildroot}%{_
 %exclude %{_libdir}/libcalligrasheetscommon.so
 
 %files sheets-templates
-%defattr(-,root,root,-)
 %{_datadir}/calligrasheets/templates
 %{_datadir}/calligrasheets/icons/hicolor/scalable/actions/template_*.svgz
 %{_datadir}/calligrasheets/icons/hicolor/48x48/actions/template_*.png
 
 %files stage-core
-%defattr(-,root,root,-)
 %{_libdir}/libcalligrastageprivate.so.*
 %{_libdir}/qt5/plugins/calligra/parts/calligrastagepart.so
 %{_libdir}/qt5/plugins/calligrastage
@@ -416,13 +409,11 @@ if [ -d %{buildroot}%{_libdir}/plugins/calligrastage ] ; then mv %{buildroot}%{_
 %exclude %{_libdir}/libcalligrastageprivate.so
 
 %files stage-templates
-%defattr(-,root,root,-)
 %{_datadir}/calligrastage/templates
 %{_datadir}/calligrastage/icons/hicolor/scalable/actions/template_*.svgz
 %{_datadir}/calligrastage/icons/hicolor/48x48/actions/template_*.png
 
 %files kf5
-%defattr(-,root,root,-)
 # identical on all the submodules, lgpl v2.1.
 %license kcodecs/COPYING.LIB
 # kio is licensed lgpl/gpl but includes only license for former. reuse gpl from calligra
