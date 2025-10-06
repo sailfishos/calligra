@@ -3,7 +3,7 @@ Version:        3.2.1+git1
 Release:        1
 Summary:        Calligra suite
 License:        LGPLv2 and GPLv2
-Url:            http://www.kde.org/
+Url:            https://github.com/sailfishos/calligra/
 Source0:        %{name}-%{version}.tar.gz
 BuildRequires:  cmake
 BuildRequires:  bison
@@ -73,38 +73,22 @@ Obsoletes: %{name}-stage-filters < 3.1.0
 %description filters
 %{summary}.
 
-%post filters
-/sbin/ldconfig
-%postun filters -p /sbin/ldconfig
-
 %package libs
 Summary: Shared Calligra libraries
 Requires: %{name}-kf5
 %description libs
 %{summary}.
 
-%post libs
-/sbin/ldconfig
-%postun libs -p /sbin/ldconfig
-
 %package plugins
 Summary: Calligra plugins
 %description plugins
 %{summary}.
-
-%post plugins
-/sbin/ldconfig
-%postun plugins -p /sbin/ldconfig
 
 %package words-core
 Summary: Calligra Words libraries
 Requires: %{name}-plugins %{name}-data
 %description words-core
 %{summary}.
-
-%post words-core
-/sbin/ldconfig
-%postun words-core -p /sbin/ldconfig
 
 %package words-templates
 Summary: Calligra Words templates
@@ -119,10 +103,6 @@ Obsoletes: %{name}-sheets-plugins < 3.1.0
 %description sheets-core
 %{summary}.
 
-%post sheets-core
-/sbin/ldconfig
-%postun sheets-core -p /sbin/ldconfig
-
 %package sheets-templates
 Summary: Calligra Sheets templates
 %description sheets-templates
@@ -134,10 +114,6 @@ Requires: %{name}-plugins %{name}-data
 Obsoletes: %{name}-stage-plugins < 3.1.0
 %description stage-core
 %{summary}.
-
-%post stage-core
-/sbin/ldconfig
-%postun stage-core -p /sbin/ldconfig
 
 %package stage-templates
 Summary: Calligra Stage templates
@@ -173,33 +149,33 @@ BuildRequires:  extra-cmake-modules >= 5.34.0
 %prep
 %setup -q -n %{name}-%{version}
 
-%patch1 -d kconfigwidgets -p1
-%patch2 -d kservice -p1
-%patch3 -d kio -p1
-%patch4 -d kxmlgui -p1
-%patch5 -d kxmlgui -p1
-%patch6 -d ki18n -p1
-%patch7 -d kdiagram -p1
-%patch8 -d kcoreaddons -p1
-%patch9 -d kcoreaddons -p1
-%patch101 -d upstream -p1
-%patch102 -d upstream -p1
-%patch103 -d upstream -p1
-%patch104 -d upstream -p1
-%patch105 -d upstream -p1
-%patch106 -d upstream -p1
-%patch107 -d upstream -p1
-%patch108 -d upstream -p1
-%patch109 -d upstream -p1
-%patch110 -d upstream -p1
-%patch111 -d upstream -p1
-%patch112 -d upstream -p1
-%patch113 -d upstream -p1
-%patch114 -d upstream -p1
-%patch115 -d upstream -p1
-%patch116 -d upstream -p1
-%patch117 -d upstream -p1
-%patch118 -d upstream -p1
+%patch -P 1 -d kconfigwidgets -p1
+%patch -P 2 -d kservice -p1
+%patch -P 3 -d kio -p1
+%patch -P 4 -d kxmlgui -p1
+%patch -P 5 -d kxmlgui -p1
+%patch -P 6 -d ki18n -p1
+%patch -P 7 -d kdiagram -p1
+%patch -P 8 -d kcoreaddons -p1
+%patch -P 9 -d kcoreaddons -p1
+%patch -P 101 -d upstream -p1
+%patch -P 102 -d upstream -p1
+%patch -P 103 -d upstream -p1
+%patch -P 104 -d upstream -p1
+%patch -P 105 -d upstream -p1
+%patch -P 106 -d upstream -p1
+%patch -P 107 -d upstream -p1
+%patch -P 108 -d upstream -p1
+%patch -P 109 -d upstream -p1
+%patch -P 110 -d upstream -p1
+%patch -P 111 -d upstream -p1
+%patch -P 112 -d upstream -p1
+%patch -P 113 -d upstream -p1
+%patch -P 114 -d upstream -p1
+%patch -P 115 -d upstream -p1
+%patch -P 116 -d upstream -p1
+%patch -P 117 -d upstream -p1
+%patch -P 118 -d upstream -p1
 
 %define build_kf5() cd %1 ; if [ ! -d build ] ; then mkdir build ; fi ; cd build ; if [ ! -e Makefile ] ; then CMAKE_PREFIX_PATH=%{_buildrootdir}/kf5/usr cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_RPATH=%{_libdir}/calligra-kf5 -DBUILD_TESTING=OFF %{?2} .. ; fi ; make %{?_smp_mflags} install DESTDIR=%{_buildrootdir}/kf5 ; cd ../.. ;
 %build
@@ -220,13 +196,13 @@ BuildRequires:  extra-cmake-modules >= 5.34.0
 %build_kf5 kdiagram
 if [ ! -d upstream/build ] ; then mkdir upstream/build ; fi ; cd upstream/build
 CMAKE_PREFIX_PATH=%{_buildrootdir}/kf5/usr cmake -DCMAKE_INSTALL_PREFIX=/usr -DPRODUCTSET="PART_WORDS PART_STAGE PART_SHEETS PART_COMPONENTS FILTER_DOCX_TO_ODT FILTER_DOC_TO_ODT FILTER_RTF_TO_ODT FILTER_XLSX_TO_ODS FILTER_XLS_TO_SHEETS FILTER_PPTX_TO_ODP FILTER_PPT_TO_ODP PLUGIN_CHARTSHAPE PLUGIN_PATHSHAPES PLUGIN_VARIABLES FILTER_CSV_TO_SHEETS APP_CONVERTER" -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release ..
-make %{?_smp_mflags}
+%make_build
 
 %install
 install -d %{buildroot}%{_libdir}/calligra-kf5/
 cp -a %{_buildrootdir}/kf5%{_libdir}/lib{KF5*,KChart}.so.* %{buildroot}%{_libdir}/calligra-kf5/
 cd upstream/build
-make install DESTDIR=%{buildroot}
+%make_install
 install -d %{buildroot}%{_libdir}/qt5
 if [ -d %{buildroot}%{_libdir}/qml ] ; then mv %{buildroot}%{_libdir}/qml %{buildroot}%{_libdir}/qt5/ ; fi
 install -d %{buildroot}%{_libdir}/qt5/plugins
@@ -236,6 +212,24 @@ if [ -d %{buildroot}%{_libdir}/plugins/calligrastage ] ; then mv %{buildroot}%{_
 
 %post -p /sbin/ldconfig
 %postun -p /sbin/ldconfig
+
+%post filters -p /sbin/ldconfig
+%postun filters -p /sbin/ldconfig
+
+%post libs -p /sbin/ldconfig
+%postun libs -p /sbin/ldconfig
+
+%post plugins -p /sbin/ldconfig
+%postun plugins -p /sbin/ldconfig
+
+%post words-core -p /sbin/ldconfig
+%postun words-core -p /sbin/ldconfig
+
+%post sheets-core -p /sbin/ldconfig
+%postun sheets-core -p /sbin/ldconfig
+
+%post stage-core -p /sbin/ldconfig
+%postun stage-core -p /sbin/ldconfig
 
 %files
 # COPYING.LIB here v2 (not 2.1)
